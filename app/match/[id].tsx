@@ -1,27 +1,33 @@
-// GoalMind — Match Analysis Screen
-// Deep AI analysis of a selected match. All on-device.
+// GoalMind — Match Detail Screen with Camera Integration
+// Enhanced match analysis with camera-based live analysis.
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View,
   Text,
   ScrollView,
   Pressable,
-  ActivityIndicator,
   StyleSheet,
+  Modal,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '@/types';
 import { SAMPLE_MATCHES, formatTeamStatsForAnalysis } from '@/lib/data/football';
 import { useAIStore } from '@/stores';
+import { Button, Card, Badge } from '@/components/ui';
+import { PossessionBar, MomentumGauge, StatsComparison } from '@/components/analysis';
+import { CameraAnalysis } from '@/components/analysis/CameraAnalysis';
+import { LiveCommentary } from '@/components/analysis/LiveCommentary';
 
-export default function MatchAnalysisScreen() {
+export default function MatchDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { modelsLoaded, loading, setLoading, commentary, setCommentary } = useAIStore();
+  const { modelsLoaded, loading, setLoading } = useAIStore();
+  const [activeTab, setActiveTab] = useState<'analysis' | 'predict' | 'commentary' | 'camera'>('analysis');
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [prediction, setPrediction] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'analysis' | 'prediction' | 'commentary'>('analysis');
+  const [showCamera, setShowCamera] = useState(false);
+  const [cameraAnalysis, setCameraAnalysis] = useState<string | null>(null);
 
   const match = SAMPLE_MATCHES.find((m) => m.id === id);
 
@@ -29,23 +35,13 @@ export default function MatchAnalysisScreen() {
     if (!match || !modelsLoaded) return;
     
     setLoading(true);
-    setCommentary('');
-    
     try {
-      // In production, this calls QVAC SDK
-      // For now, generate analysis based on real team data
-      const homeContext = formatTeamStatsForAnalysis(match.homeTeam);
-      const awayContext = formatTeamStatsForAnalysis(match.awayTeam);
-      
-      // Simulate AI processing time
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      
       const homeStats = match.homeTeam.stats;
       const awayStats = match.awayTeam.stats;
       
-      // Real analysis based on actual stats
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      
       const possessionDiff = homeStats.avgPossession - awayStats.avgPossession;
-      const goalDiff = (homeStats.goalsFor - homeStats.goalsAgainst) - (awayStats.goalsFor - awayStats.goalsAgainst);
       const formHome = match.homeTeam.recentForm.filter(r => r === 'W').length;
       const formAway = match.awayTeam.recentForm.filter(r => r === 'W').length;
       
@@ -63,14 +59,13 @@ Momentum: ${match.homeTeam.name} recent form (${match.homeTeam.recentForm.join('
 
       setAnalysis(analysisText);
 
-      // Generate prediction
       const totalGoalsHome = homeStats.goalsFor / homeStats.played;
       const totalGoalsAway = awayStats.goalsFor / awayStats.played;
       const homeXG = (totalGoalsHome + awayStats.goalsAgainst / awayStats.played) / 2;
       const awayXG = (totalGoalsAway + homeStats.goalsAgainst / homeStats.played) / 2;
       
-      const homeWinProb = 0.35 + (goalDiff * 0.02) + (formHome - formAway) * 0.05 + possessionDiff * 0.005;
-      const awayWinProb = 0.30 - (goalDiff * 0.02) - (formHome - formAway) * 0.05 - possessionDiff * 0.005;
+      const homeWinProb = 0.35 + ((homeStats.goalsFor - homeStats.goalsAgainst) - (awayStats.goalsFor - awayStats.goalsAgainst)) * 0.02 + (formHome - formAway) * 0.05 + possessionDiff * 0.005;
+      const awayWinProb = 0.30 - ((homeStats.goalsFor - homeStats.goalsAgainst) - (awayStats.goalsFor - awayStats.goalsAgainst)) * 0.02 - (formHome - formAway) * 0.05 - possessionDiff * 0.005;
       const drawProb = 1 - homeWinProb - awayWinProb;
 
       setPrediction({
@@ -80,7 +75,6 @@ Momentum: ${match.homeTeam.name} recent form (${match.homeTeam.recentForm.join('
         expectedGoalsHome: Math.max(0.5, Math.min(3.5, homeXG)).toFixed(1),
         expectedGoalsAway: Math.max(0.5, Math.min(3.5, awayXG)).toFixed(1),
       });
-
     } catch (error) {
       console.error('Analysis failed:', error);
     } finally {
@@ -88,11 +82,14 @@ Momentum: ${match.homeTeam.name} recent form (${match.homeTeam.recentForm.join('
     }
   }, [match, modelsLoaded]);
 
-  useEffect(() => {
-    if (match && modelsLoaded) {
-      runAnalysis();
-    }
-  }, [match, modelsLoaded]);
+  const handleCameraCapture = useCallback((uri: string) => {
+    console.log('Captured:', uri);
+  }, []);
+
+  const handleCameraAnalysis = useCallback((analysis: string) => {
+    setCameraAnalysis(analysis);
+    setShowCamera(false);
+  }, []);
 
   if (!match) {
     return (
@@ -124,12 +121,17 @@ Momentum: ${match.homeTeam.name} recent form (${match.homeTeam.recentForm.join('
 
       {/* Tab Selector */}
       <View style={styles.tabs}>
-        {(['analysis', 'prediction', 'commentary'] as const).map((tab) => (
+        {(['analysis', 'predict', 'commentary', 'camera'] as const).map((tab) => (
           <Pressable
             key={tab}
             style={[styles.tab, activeTab === tab && styles.tabActive]}
             onPress={() => setActiveTab(tab)}
           >
+            <Ionicons
+              name={tab === 'analysis' ? 'analytics' : tab === 'predict' ? 'trending-up' : tab === 'commentary' ? 'mic' : 'camera'}
+              size={16}
+              color={activeTab === tab ? COLORS.primary : COLORS.textDim}
+            />
             <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </Text>
@@ -139,90 +141,121 @@ Momentum: ${match.homeTeam.name} recent form (${match.homeTeam.recentForm.join('
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator color={COLORS.primary} size="large" />
-            <Text style={styles.loadingText}>Analyzing on-device...</Text>
-            <Text style={styles.loadingSubtext}>No data leaves your phone</Text>
-          </View>
-        ) : (
+        {activeTab === 'analysis' && (
           <>
-            {activeTab === 'analysis' && analysis && (
-              <View style={styles.analysisCard}>
-                <View style={styles.analysisHeader}>
-                  <Ionicons name="analytics" size={20} color={COLORS.primary} />
-                  <Text style={styles.analysisTitle}>Tactical Breakdown</Text>
-                </View>
-                <Text style={styles.analysisText}>{analysis}</Text>
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>Analyzing on-device...</Text>
               </View>
-            )}
-
-            {activeTab === 'prediction' && prediction && (
-              <View style={styles.predictionCard}>
-                <View style={styles.analysisHeader}>
-                  <Ionicons name="trending-up" size={20} color={COLORS.secondary} />
-                  <Text style={styles.analysisTitle}>Match Prediction</Text>
-                </View>
-                
-                <View style={styles.predictionGrid}>
-                  <View style={styles.predictionItem}>
-                    <Text style={styles.predictionLabel}>{match.homeTeam.shortName} Win</Text>
-                    <Text style={styles.predictionValue}>
-                      {(prediction.homeWin * 100).toFixed(0)}%
-                    </Text>
-                    <View style={[styles.predictionBar, { width: `${prediction.homeWin * 100}%`, backgroundColor: COLORS.primary }]} />
-                  </View>
-                  <View style={styles.predictionItem}>
-                    <Text style={styles.predictionLabel}>Draw</Text>
-                    <Text style={styles.predictionValue}>
-                      {(prediction.draw * 100).toFixed(0)}%
-                    </Text>
-                    <View style={[styles.predictionBar, { width: `${prediction.draw * 100}%`, backgroundColor: COLORS.textDim }]} />
-                  </View>
-                  <View style={styles.predictionItem}>
-                    <Text style={styles.predictionLabel}>{match.awayTeam.shortName} Win</Text>
-                    <Text style={styles.predictionValue}>
-                      {(prediction.awayWin * 100).toFixed(0)}%
-                    </Text>
-                    <View style={[styles.predictionBar, { width: `${prediction.awayWin * 100}%`, backgroundColor: COLORS.secondary }]} />
-                  </View>
-                </View>
-
-                <View style={styles.xgRow}>
-                  <View style={styles.xgItem}>
-                    <Text style={styles.xgLabel}>xG {match.homeTeam.shortName}</Text>
-                    <Text style={styles.xgValue}>{prediction.expectedGoalsHome}</Text>
-                  </View>
-                  <View style={styles.xgItem}>
-                    <Text style={styles.xgLabel}>xG {match.awayTeam.shortName}</Text>
-                    <Text style={styles.xgValue}>{prediction.expectedGoalsAway}</Text>
-                  </View>
-                </View>
-              </View>
-            )}
-
-            {activeTab === 'commentary' && (
-              <View style={styles.commentaryCard}>
-                <View style={styles.analysisHeader}>
-                  <Ionicons name="mic" size={20} color={COLORS.accent} />
-                  <Text style={styles.analysisTitle}>AI Commentary</Text>
-                </View>
-                <Text style={styles.commentaryText}>
-                  {commentary || 'Start a match to generate live AI commentary. Works offline in stadiums — no connectivity needed.'}
+            ) : analysis ? (
+              <>
+                <PossessionBar
+                  home={match.homeTeam.stats.avgPossession}
+                  away={match.awayTeam.stats.avgPossession}
+                  homeTeam={match.homeTeam.shortName}
+                  awayTeam={match.awayTeam.shortName}
+                />
+                <MomentumGauge
+                  value={match.homeTeam.stats.avgPossession - match.awayTeam.stats.avgPossession}
+                  homeTeam={match.homeTeam.shortName}
+                  awayTeam={match.awayTeam.shortName}
+                />
+                <Card>
+                  <Text style={styles.analysisText}>{analysis}</Text>
+                </Card>
+              </>
+            ) : (
+              <View style={styles.emptyState}>
+                <Ionicons name="analytics-outline" size={48} color={COLORS.textDim} />
+                <Text style={styles.emptyTitle}>Run AI Analysis</Text>
+                <Text style={styles.emptySubtitle}>
+                  Get tactical insights powered by on-device AI
                 </Text>
+                <Button
+                  title="Analyze Match"
+                  onPress={runAnalysis}
+                  icon="flash"
+                  disabled={!modelsLoaded}
+                />
               </View>
             )}
           </>
         )}
+
+        {activeTab === 'predict' && prediction && (
+          <Card>
+            <Text style={styles.sectionTitle}>Match Prediction</Text>
+            <View style={styles.predictionGrid}>
+              <View style={styles.predictionItem}>
+                <Text style={styles.predictionLabel}>{match.homeTeam.shortName}</Text>
+                <Text style={styles.predictionValue}>{(prediction.homeWin * 100).toFixed(0)}%</Text>
+              </View>
+              <View style={styles.predictionItem}>
+                <Text style={styles.predictionLabel}>Draw</Text>
+                <Text style={styles.predictionValue}>{(prediction.draw * 100).toFixed(0)}%</Text>
+              </View>
+              <View style={styles.predictionItem}>
+                <Text style={styles.predictionLabel}>{match.awayTeam.shortName}</Text>
+                <Text style={styles.predictionValue}>{(prediction.awayWin * 100).toFixed(0)}%</Text>
+              </View>
+            </View>
+          </Card>
+        )}
+
+        {activeTab === 'commentary' && (
+          <LiveCommentary
+            matchId={match.id}
+            homeTeam={match.homeTeam.shortName}
+            awayTeam={match.awayTeam.shortName}
+          />
+        )}
+
+        {activeTab === 'camera' && (
+          <View style={styles.cameraSection}>
+            <Card>
+              <View style={styles.cameraCard}>
+                <Ionicons name="camera" size={32} color={COLORS.primary} />
+                <Text style={styles.cameraTitle}>Live Match Analysis</Text>
+                <Text style={styles.cameraSubtitle}>
+                  Point your camera at a live match to get instant AI analysis
+                </Text>
+                <Button
+                  title="Open Camera"
+                  onPress={() => setShowCamera(true)}
+                  icon="camera"
+                />
+              </View>
+            </Card>
+
+            {cameraAnalysis && (
+              <Card>
+                <Text style={styles.sectionTitle}>Camera Analysis</Text>
+                <Text style={styles.analysisText}>{cameraAnalysis}</Text>
+              </Card>
+            )}
+          </View>
+        )}
       </ScrollView>
 
-      {/* Action Button */}
-      {!loading && !analysis && modelsLoaded && (
-        <Pressable style={styles.actionButton} onPress={runAnalysis}>
-          <Ionicons name="flash" size={20} color={COLORS.background} />
-          <Text style={styles.actionButtonText}>Run AI Analysis</Text>
-        </Pressable>
-      )}
+      {/* Camera Modal */}
+      <Modal
+        visible={showCamera}
+        animationType="slide"
+        presentationStyle="fullScreen"
+      >
+        <View style={styles.cameraModal}>
+          <CameraAnalysis
+            onCapture={handleCameraCapture}
+            onAnalyze={handleCameraAnalysis}
+          />
+          <Pressable
+            style={styles.closeCamera}
+            onPress={() => setShowCamera(false)}
+          >
+            <Ionicons name="close" size={24} color={COLORS.text} />
+          </Pressable>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -277,16 +310,19 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
     paddingVertical: 10,
     borderRadius: 8,
     backgroundColor: COLORS.surface,
-    alignItems: 'center',
   },
   tabActive: {
     backgroundColor: COLORS.primaryMuted,
   },
   tabText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: COLORS.textDim,
   },
@@ -298,118 +334,90 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
+    paddingVertical: 40,
   },
   loadingText: {
     fontSize: 16,
-    fontWeight: '600',
     color: COLORS.text,
-    marginTop: 16,
   },
-  loadingSubtext: {
-    fontSize: 12,
-    color: COLORS.textDim,
-    marginTop: 4,
-  },
-  analysisCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  analysisHeader: {
-    flexDirection: 'row',
+  emptyState: {
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 16,
+    paddingVertical: 40,
+    gap: 12,
   },
-  analysisTitle: {
-    fontSize: 16,
+  emptyTitle: {
+    fontSize: 18,
     fontWeight: '700',
     color: COLORS.text,
+    marginTop: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    marginBottom: 16,
   },
   analysisText: {
     fontSize: 14,
     color: COLORS.textMuted,
     lineHeight: 22,
   },
-  predictionCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 16,
   },
   predictionGrid: {
-    gap: 16,
-    marginBottom: 24,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   predictionItem: {
-    gap: 8,
+    alignItems: 'center',
+    gap: 4,
   },
   predictionLabel: {
-    fontSize: 13,
-    color: COLORS.textMuted,
-    fontWeight: '600',
+    fontSize: 12,
+    color: COLORS.textDim,
   },
   predictionValue: {
     fontSize: 24,
     fontWeight: '800',
     color: COLORS.text,
   },
-  predictionBar: {
-    height: 4,
-    borderRadius: 2,
+  cameraSection: {
+    gap: 16,
   },
-  xgRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  xgItem: {
+  cameraCard: {
     alignItems: 'center',
+    gap: 12,
+    paddingVertical: 24,
   },
-  xgLabel: {
-    fontSize: 12,
-    color: COLORS.textDim,
-    marginBottom: 4,
-  },
-  xgValue: {
-    fontSize: 20,
+  cameraTitle: {
+    fontSize: 18,
     fontWeight: '700',
     color: COLORS.text,
   },
-  commentaryCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  commentaryText: {
-    fontSize: 16,
+  cameraSubtitle: {
+    fontSize: 14,
     color: COLORS.textMuted,
-    lineHeight: 24,
-    fontStyle: 'italic',
+    textAlign: 'center',
+    marginBottom: 8,
   },
-  actionButton: {
-    flexDirection: 'row',
+  cameraModal: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  closeCamera: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.6)',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    backgroundColor: COLORS.primary,
-    paddingVertical: 16,
-    borderRadius: 12,
-    marginVertical: 16,
-  },
-  actionButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.background,
   },
   errorText: {
     fontSize: 16,

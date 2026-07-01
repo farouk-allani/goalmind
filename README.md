@@ -22,6 +22,21 @@ Statistical match predictions using Elo ratings, Poisson distribution, and form-
 ### 💰 Self-Custodial Fan Wallet
 Built with Tether WDK for fan-to-fan tipping, prediction rewards, and match achievements. Supports Ethereum, Polygon, Arbitrum, and Optimism. You hold your own keys.
 
+### 🤖 Agent Wallet (WDK Track)
+An AI agent that autonomously holds, sends, and manages USDt based on match analysis. Configurable strategies (conservative/moderate/aggressive), daily spending limits, and decision-making based on prediction confidence.
+
+### 📈 Prediction Staking (WDK Track)
+Escrow-based stakes on match outcomes with dynamic odds. Fans can stake on predictions and earn rewards. Includes user stats, win rate tracking, and pool settlement.
+
+### 👥 Group Tipping Pools (WDK Track)
+Fans pool tips together for matches. Multiple distribution rules (proportional, equal, winner-take-all, top-three). Min/max contribution limits and pool analytics.
+
+### 🔍 RAG Knowledge Base (QVAC Track)
+Retrieval-Augmented Generation over football knowledge using QVAC embeddings. Local document search for rules, tactics, history, player info, and team analysis. All processing on-device.
+
+### 🎯 Multi-Agent Orchestration (QVAC Track)
+Multiple specialized AI agents (Coach, Analyst, Commentator, Scout) that collaborate to provide comprehensive insights. Tool calling for knowledge queries and predictions. Parallel task execution with result synthesis.
+
 ### 🔒 Privacy First
 All AI inference runs on-device. No cloud. No API keys. No data leaves your phone. Works offline.
 
@@ -40,38 +55,49 @@ All AI inference runs on-device. No cloud. No API keys. No data leaves your phon
 ## Architecture
 
 ```
-┌─────────────────────────────────────────┐
-│            GoalMind App                 │
-├─────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────────┐  │
-│  │   Camera    │  │   UI Layer      │  │
-│  │   Input     │  │   (Expo/RN)     │  │
-│  └──────┬──────┘  └────────┬────────┘  │
-│         │                  │            │
-│  ┌──────▼──────────────────▼────────┐  │
-│  │         QVAC SDK (Local AI)      │  │
-│  │  ┌─────────┐ ┌────────┐ ┌─────┐ │  │
-│  │  │ Vision  │ │  LLM   │ │ TTS │ │  │
-│  │  │ Model   │ │ Model  │ │Model│ │  │
-│  │  └─────────┘ └────────┘ └─────┘ │  │
-│  └──────────────────────────────────┘  │
-│                                         │
-│  ┌──────────────────────────────────┐  │
-│  │       WDK (Self-Custodial)       │  │
-│  │  ┌─────────┐ ┌────────────────┐  │  │
-│  │  │ Wallet  │ │   Payments     │  │  │
-│  │  │ Manager │ │   & Tips       │  │  │
-│  │  └─────────┘ └────────────────┘  │  │
-│  └──────────────────────────────────┘  │
-│                                         │
-│  ┌──────────────────────────────────┐  │
-│  │    Prediction Engine (Local)     │  │
-│  │  ┌──────┐ ┌────────┐ ┌───────┐  │  │
-│  │  │ Elo  │ │Poisson │ │ Form  │  │  │
-│  │  │Rating│ │  Dist  │ │Analysis│ │  │
-│  │  └──────┘ └────────┘ └───────┘  │  │
-│  └──────────────────────────────────┘  │
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│                    GoalMind App                          │
+├─────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────────┐  ┌────────────┐  │
+│  │   Camera    │  │   UI Layer      │  │  Settings  │  │
+│  │   Input     │  │   (Expo/RN)     │  │  & Config  │  │
+│  └──────┬──────┘  └────────┬────────┘  └─────┬──────┘  │
+│         │                  │                   │         │
+│  ┌──────▼──────────────────▼───────────────────▼──────┐ │
+│  │              QVAC SDK (Local AI)                    │ │
+│  │  ┌─────────┐ ┌────────┐ ┌─────┐ ┌──────────────┐  │ │
+│  │  │ Vision  │ │  LLM   │ │ TTS │ │  Embeddings  │  │ │
+│  │  │ Model   │ │ Model  │ │Model│ │    Model     │  │ │
+│  │  └─────────┘ └────────┘ └─────┘ └──────────────┘  │ │
+│  └────────────────────────────────────────────────────┘ │
+│                                                          │
+│  ┌────────────────────────────────────────────────────┐ │
+│  │           Multi-Agent Orchestration                │ │
+│  │  ┌────────┐ ┌────────┐ ┌──────────┐ ┌─────────┐  │ │
+│  │  │ Coach  │ │Analyst │ │Commentator│ │  Scout  │  │ │
+│  │  │ Agent  │ │ Agent  │ │  Agent   │ │  Agent  │  │ │
+│  │  └────────┘ └────────┘ └──────────┘ └─────────┘  │ │
+│  │              ┌──────────────┐                      │ │
+│  │              │ Orchestrator │                      │ │
+│  │              └──────────────┘                      │ │
+│  └────────────────────────────────────────────────────┘ │
+│                                                          │
+│  ┌────────────────────────────────────────────────────┐ │
+│  │              WDK (Self-Custodial)                   │ │
+│  │  ┌─────────┐ ┌────────────┐ ┌───────────────────┐ │ │
+│  │  │ Wallet  │ │   Agent    │ │  Staking & Pools  │ │ │
+│  │  │ Manager │ │   Wallet   │ │  (Escrow)         │ │ │
+│  │  └─────────┘ └────────────┘ └───────────────────┘ │ │
+│  └────────────────────────────────────────────────────┘ │
+│                                                          │
+│  ┌────────────────────────────────────────────────────┐ │
+│  │              Prediction Engine                      │ │
+│  │  ┌──────┐ ┌────────┐ ┌───────┐ ┌───────────────┐ │ │
+│  │  │ Elo  │ │Poisson │ │ Form  │ │  RAG Query    │ │ │
+│  │  │Rating│ │  Dist  │ │Analysis│ │  (Embeddings) │ │ │
+│  │  └──────┘ └────────┘ └───────┘ └───────────────┘ │ │
+│  └────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ## Quick Start
@@ -117,8 +143,15 @@ goalmind/
 │   └── ErrorBoundary.tsx # Error handling
 ├── lib/                   # Core logic
 │   ├── ai/               # QVAC integration
+│   │   ├── models.ts     # Model lifecycle
+│   │   ├── rag.ts        # RAG knowledge base
+│   │   └── orchestrator.ts # Multi-agent orchestration
 │   ├── api/              # Football data API
 │   ├── wallet/           # WDK integration
+│   │   ├── wdk.ts        # Wallet operations
+│   │   ├── agent.ts      # Agent wallet
+│   │   ├── staking.ts    # Prediction staking
+│   │   └── pools.ts      # Group tipping pools
 │   ├── predictions/      # Prediction engine
 │   ├── data/             # Sample football data
 │   └── config.ts         # App configuration
@@ -135,18 +168,30 @@ goalmind/
 
 This project enters **two tracks**:
 
-- **QVAC Track** — All AI inference (vision, language, speech) runs on-device via QVAC SDK
-- **WDK Track** — Self-custodial wallet with fan-to-fan tipping and prediction rewards
+### QVAC Track (Local AI)
+- ✅ On-device NLP, TTS, and vision using QVAC SDK
+- ✅ RAG (Retrieval-Augmented Generation) over football knowledge base
+- ✅ Multi-agent orchestration with tool calling
+- ✅ Privacy-first: no cloud, no API keys, no data leaves device
+- ✅ Works offline in stadiums
+
+### WDK Track (Wallets)
+- ✅ Self-custodial wallet with seed phrase backup
+- ✅ Multi-chain support (Ethereum, Polygon, Arbitrum, Optimism)
+- ✅ Agent Wallet: AI agent that autonomously manages USDt
+- ✅ Prediction Staking: escrow-based stakes with dynamic odds
+- ✅ Group Tipping Pools: fans pool tips with smart distribution
+- ✅ Programmable payments and event-triggered transfers
 
 ## Judging Criteria
 
 | Criterion | How GoalMind Delivers |
 |-----------|----------------------|
-| Technical Ambition | On-device NLP + TTS + blockchain wallet + statistical prediction |
+| Technical Ambition | Multi-agent orchestration + RAG + on-device AI + blockchain wallet |
 | User Experience | Pull-to-refresh matches → tap → get instant analysis. Tap to tip. |
 | Real-World Utility | 4B+ football fans. Works offline in stadiums. |
-| Creativity | First on-device AI football companion with integrated crypto wallet |
-| Tether Platform | Deep QVAC + WDK integration, not just a logo |
+| Creativity | First on-device AI football companion with agent wallet and RAG |
+| Tether Platform | Deep QVAC + WDK integration across all features |
 
 ## API Integration
 

@@ -126,3 +126,4 @@ MIT — Built for the Tether Developers Cup 2026
 ## Author
 
 **Farouk Allani** — [@farouk_allani](https://x.com/farouk_allani)
+# GoalMind is ready for the Tether Developers Cup 2026!

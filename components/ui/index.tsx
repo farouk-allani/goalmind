@@ -2,8 +2,9 @@
 // Reusable, clean, no-fluff components.
 
 import { View, Text, Pressable, ActivityIndicator, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '@/types';
+import { COLORS, GRADIENTS } from '@/types';
 
 // Button variants
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
@@ -32,8 +33,8 @@ export function Button({
   fullWidth = false,
   style,
 }: ButtonProps) {
-  const variantStyles: Record<ButtonVariant, { bg: string; text: string; border?: string }> = {
-    primary: { bg: COLORS.primary, text: COLORS.background },
+  const variantStyles: Record<ButtonVariant, { bg: string; text: string; border?: string; useGradient?: boolean }> = {
+    primary: { bg: COLORS.primary, text: COLORS.background, useGradient: true },
     secondary: { bg: COLORS.secondary, text: COLORS.background },
     outline: { bg: 'transparent', text: COLORS.text, border: COLORS.border },
     ghost: { bg: 'transparent', text: COLORS.textMuted },
@@ -47,6 +48,47 @@ export function Button({
 
   const v = variantStyles[variant];
   const s = sizeStyles[size];
+
+  const isGradientPrimary = variant === 'primary';
+
+  const buttonContent = loading ? (
+    <ActivityIndicator color={v.text} size="small" />
+  ) : (
+    <>
+      {icon && <Ionicons name={icon} size={s.iconSize} color={v.text} />}
+      <Text style={[styles.buttonText, { color: v.text, fontSize: s.fontSize }]}>
+        {title}
+      </Text>
+    </>
+  );
+
+  if (isGradientPrimary) {
+    return (
+      <Pressable
+        onPress={onPress}
+        disabled={disabled || loading}
+        style={({ pressed }) => [
+          styles.button,
+          {
+            paddingVertical: s.py,
+            paddingHorizontal: s.px,
+            opacity: pressed ? 0.88 : disabled ? 0.5 : 1,
+          },
+          fullWidth && { width: '100%' },
+          style,
+        ]}
+      >
+        <LinearGradient
+          colors={GRADIENTS.primary}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={[styles.gradientButton, { borderRadius: 12 }]}
+        >
+          {buttonContent}
+        </LinearGradient>
+      </Pressable>
+    );
+  }
 
   return (
     <Pressable
@@ -66,16 +108,7 @@ export function Button({
         style,
       ]}
     >
-      {loading ? (
-        <ActivityIndicator color={v.text} size="small" />
-      ) : (
-        <>
-          {icon && <Ionicons name={icon} size={s.iconSize} color={v.text} />}
-          <Text style={[styles.buttonText, { color: v.text, fontSize: s.fontSize }]}>
-            {title}
-          </Text>
-        </>
-      )}
+      {buttonContent}
     </Pressable>
   );
 }
@@ -197,16 +230,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     borderRadius: 12,
+    overflow: 'hidden',
+  },
+  gradientButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 'inherit',
+    paddingHorizontal: 'inherit',
+    borderRadius: 12,
   },
   buttonText: {
     fontWeight: '600',
   },
   card: {
     backgroundColor: COLORS.surface,
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 20,
     borderWidth: 1,
     borderColor: COLORS.border,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
   },
   cardElevated: {
     shadowColor: '#000',

@@ -13,9 +13,9 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",
-    "@qvac/sdk": "^0.1.0",
+    "@qvac/sdk": "0.14.0",
     "@tetherto/wdk": "^1.0.0-beta.12",
-    "@tetherto/wdk-wallet-evm": "^1.0.0-beta.12",
+    "@tetherto/wdk-wallet-evm": "^1.0.0-beta.14",
     "expo": "~52.0.0",
     "expo-camera": "~16.0.0",
     "expo-constants": "~17.0.0",

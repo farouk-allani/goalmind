@@ -11,9 +11,11 @@ import {
   Alert,
   StyleSheet,
   Modal,
+  Image,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '@/types';
+import { COLORS, GRADIENTS } from '@/types';
 import { useWallet } from '@/hooks/useWallet';
 import { formatAddress, formatAmount, CHAINS, type ChainId } from '@/lib/wallet/wdk';
 import { Card, Button, Badge } from '@/components/ui';
@@ -88,10 +90,21 @@ export default function WalletScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Fan Wallet</Text>
-        <Text style={styles.subtitle}>Self-custodial. Your keys, your crypto.</Text>
+      {/* Premium Header Banner */}
+      <View style={styles.heroWrap}>
+        <Image 
+          source={require('@/assets/brand/hero-wallet.jpg')} 
+          style={styles.heroImage}
+          resizeMode="cover"
+        />
+        <LinearGradient 
+          colors={['rgba(10,10,10,0.45)', 'rgba(10,10,10,0.88)']} 
+          style={styles.heroOverlay} 
+        />
+        <View style={styles.heroContent}>
+          <Text style={styles.title}>Fan Wallet</Text>
+          <Text style={styles.subtitle}>Self-custodial • Powered by Tether WDK</Text>
+        </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -110,9 +123,12 @@ export default function WalletScreen() {
               </View>
 
               {/* Balance */}
-              <Text style={styles.balanceLabel}>Balance</Text>
+              <Text style={styles.balanceLabel}>TOTAL BALANCE</Text>
               <Text style={styles.balanceValue}>{formatAmount(balance, 4)} ETH</Text>
-              <Text style={styles.usdtBalance}>{formatAmount(usdtBalance, 2)} USDt</Text>
+              <View style={styles.usdtRow}>
+                <Ionicons name="shield-checkmark" size={15} color={COLORS.gold} />
+                <Text style={styles.usdtBalance}>{formatAmount(usdtBalance, 2)} USDt</Text>
+              </View>
 
               {/* Address */}
               <View style={styles.addressRow}>
@@ -280,19 +296,30 @@ export default function WalletScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background, paddingHorizontal: 20, paddingTop: 60 },
+  container: { flex: 1, backgroundColor: COLORS.background, paddingHorizontal: 20, paddingTop: 12 },
+  heroWrap: {
+    height: 112,
+    marginHorizontal: -20,
+    marginBottom: 20,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  heroImage: { ...StyleSheet.absoluteFillObject },
+  heroOverlay: { ...StyleSheet.absoluteFillObject },
+  heroContent: { position: 'absolute', bottom: 14, left: 20 },
   header: { marginBottom: 24 },
-  title: { fontSize: 28, fontWeight: '800', color: COLORS.text, letterSpacing: -0.5 },
-  subtitle: { fontSize: 14, color: COLORS.textMuted, marginTop: 4 },
+  title: { fontSize: 26, fontWeight: '800', color: COLORS.text, letterSpacing: -0.6 },
+  subtitle: { fontSize: 13, color: 'rgba(163,163,163,0.85)', marginTop: 2 },
   walletCard: { marginBottom: 16, padding: 24 },
   walletHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   walletIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: COLORS.primaryMuted, alignItems: 'center', justifyContent: 'center' },
   walletStatus: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   walletStatusText: { fontSize: 12, color: COLORS.success, fontWeight: '600' },
   statusDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.success },
-  balanceLabel: { fontSize: 13, color: COLORS.textDim, marginBottom: 4 },
-  balanceValue: { fontSize: 32, fontWeight: '800', color: COLORS.text, letterSpacing: -1, marginBottom: 4 },
-  usdtBalance: { fontSize: 18, fontWeight: '600', color: COLORS.accent, marginBottom: 16 },
+  balanceLabel: { fontSize: 11, color: COLORS.textDim, marginBottom: 4, letterSpacing: 1 },
+  balanceValue: { fontSize: 32, fontWeight: '800', color: COLORS.text, letterSpacing: -1, marginBottom: 2 },
+  usdtRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
+  usdtBalance: { fontSize: 18, fontWeight: '700', color: COLORS.gold },
   addressRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: COLORS.background, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginBottom: 12 },
   addressText: { flex: 1, fontSize: 13, color: COLORS.textMuted, fontFamily: 'monospace' },
   copyButton: { padding: 4 },

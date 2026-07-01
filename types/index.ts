@@ -145,6 +145,7 @@ export interface ThemeColors {
   surfaceElevated: string;
   primary: string;
   primaryMuted: string;
+  gold: string;
   secondary: string;
   accent: string;
   text: string;
@@ -157,18 +158,27 @@ export interface ThemeColors {
 }
 
 export const COLORS: ThemeColors = {
-  background: '#0a0a0a',
-  surface: '#141414',
-  surfaceElevated: '#1e1e1e',
-  primary: '#10b981',     // Emerald
-  primaryMuted: '#065f46',
-  secondary: '#6366f1',   // Indigo
-  accent: '#f59e0b',      // Amber
-  text: '#f5f5f5',
-  textMuted: '#a3a3a3',
+  background: '#0A0A0A',
+  surface: '#121212',
+  surfaceElevated: '#1A1A1A',
+  primary: '#10B981',     // Rich Emerald - football pitch + success
+  primaryMuted: '#065F46',
+  gold: '#C5A26F',        // Premium tournament gold
+  secondary: '#6366F1',
+  accent: '#F59E0B',
+  text: '#F8F8F8',
+  textMuted: '#A3A3A3',
   textDim: '#525252',
-  success: '#22c55e',
-  warning: '#eab308',
-  error: '#ef4444',
+  success: '#22C55E',
+  warning: '#EAB308',
+  error: '#EF4444',
   border: '#262626',
+};
+
+// Extended theme tokens for premium UI
+export const GRADIENTS = {
+  primary: ['#10B981', '#059669'] as const,
+  gold: ['#C5A26F', '#A67C52'] as const,
+  dark: ['#0A0A0A', '#121212'] as const,
+  card: ['#121212', '#1A1A1A'] as const,
 };

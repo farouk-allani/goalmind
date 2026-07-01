@@ -8,7 +8,9 @@ import {
   Pressable,
   StyleSheet,
   Dimensions,
+  ImageBackground,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { COLORS } from '@/types';
@@ -24,33 +26,40 @@ interface OnboardingStep {
   color: string;
 }
 
+const heroImages = [
+  require('@/assets/brand/hero-stadium.jpg'),
+  require('@/assets/brand/hero-ondevice.jpg'),
+  require('@/assets/brand/hero-wallet.jpg'),
+  require('@/assets/brand/hero-stadium.jpg'), // reuse dramatic for offline/stadium
+];
+
 const steps: OnboardingStep[] = [
   {
     id: 1,
     icon: 'football',
     title: 'Welcome to GoalMind',
-    description: 'Your AI-powered football companion. Get tactical analysis, predictions, and engage with fans — all on your device.',
+    description: 'Your AI-powered football companion for the global tournament. Tactical analysis, predictions, and fan engagement — all on your device.',
     color: COLORS.primary,
   },
   {
     id: 2,
     icon: 'phone-portrait',
     title: '100% On-Device AI',
-    description: 'All AI inference runs locally using QVAC SDK. No cloud, no API keys, no data leaving your phone.',
+    description: 'All inference runs locally via QVAC. No cloud. No API keys. No data leaves your phone. Built for stadiums and anywhere.',
     color: COLORS.secondary,
   },
   {
     id: 3,
     icon: 'wallet',
-    title: 'Self-Custodial Wallet',
-    description: 'Built with Tether WDK. Your keys, your crypto. Tip fans, stake predictions, and earn rewards.',
-    color: COLORS.accent,
+    title: 'Self-Custodial Fan Wallet',
+    description: 'Powered by Tether WDK. Tip fellow fans, stake on predictions, earn rewards. You hold the keys.',
+    color: COLORS.gold,
   },
   {
     id: 4,
     icon: 'airplane',
-    title: 'Works Offline',
-    description: 'Use GoalMind anywhere — in the stadium, on a plane, or in areas with no connectivity.',
+    title: 'Stadium-Ready. Offline First.',
+    description: 'Works in the stands with no signal. The ultimate companion for the biggest matches on earth.',
     color: COLORS.success,
   },
 ];
@@ -73,48 +82,62 @@ export default function OnboardingScreen() {
 
   const step = steps[currentStep];
 
+  const heroSource = heroImages[currentStep];
+
   return (
     <View style={styles.container}>
-      {/* Skip button */}
-      <View style={styles.header}>
-        <Pressable onPress={handleSkip} style={styles.skipButton}>
-          <Text style={styles.skipText}>Skip</Text>
-        </Pressable>
-      </View>
-
-      {/* Content */}
-      <View style={styles.content}>
-        <View style={[styles.iconContainer, { backgroundColor: step.color + '20' }]}>
-          <Ionicons name={step.icon} size={64} color={step.color} />
-        </View>
-        
-        <Text style={styles.title}>{step.title}</Text>
-        <Text style={styles.description}>{step.description}</Text>
-      </View>
-
-      {/* Progress */}
-      <View style={styles.progress}>
-        {steps.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.progressDot,
-              index === currentStep && styles.progressDotActive,
-              index < currentStep && styles.progressDotCompleted,
-            ]}
-          />
-        ))}
-      </View>
-
-      {/* Actions */}
-      <View style={styles.actions}>
-        <Button
-          title={currentStep === steps.length - 1 ? "Get Started" : "Next"}
-          onPress={handleNext}
-          icon={currentStep === steps.length - 1 ? "rocket" : "arrow-forward"}
-          fullWidth
+      <ImageBackground 
+        source={heroSource} 
+        style={styles.heroBackground}
+        resizeMode="cover"
+      >
+        <LinearGradient
+          colors={['rgba(10,10,10,0.35)', 'rgba(10,10,10,0.85)', 'rgba(10,10,10,0.95)']}
+          style={styles.heroOverlay}
         />
-      </View>
+
+        {/* Skip */}
+        <View style={styles.header}>
+          <Pressable onPress={handleSkip} style={styles.skipButton}>
+            <Text style={styles.skipText}>Skip</Text>
+          </Pressable>
+        </View>
+
+        {/* Content layered on hero */}
+        <View style={styles.content}>
+          <View style={[styles.iconContainer, { backgroundColor: step.color + '25', borderColor: step.color + '40' }]}>
+            <Ionicons name={step.icon} size={52} color={step.color} />
+          </View>
+          
+          <Text style={styles.title}>{step.title}</Text>
+          <Text style={styles.description}>{step.description}</Text>
+        </View>
+
+        {/* Bottom controls */}
+        <View style={styles.bottomBar}>
+          <View style={styles.progress}>
+            {steps.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.progressDot,
+                  index === currentStep && styles.progressDotActive,
+                  index < currentStep && styles.progressDotCompleted,
+                ]}
+              />
+            ))}
+          </View>
+
+          <View style={styles.actions}>
+            <Button
+              title={currentStep === steps.length - 1 ? "Enter GoalMind" : "Next"}
+              onPress={handleNext}
+              icon={currentStep === steps.length - 1 ? "arrow-forward" : "arrow-forward"}
+              fullWidth
+            />
+          </View>
+        </View>
+      </ImageBackground>
     </View>
   );
 }
@@ -123,66 +146,82 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
+  },
+  heroBackground: {
+    flex: 1,
+  },
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginBottom: 40,
+    paddingHorizontal: 24,
+    paddingTop: 60,
+    zIndex: 10,
   },
   skipButton: {
-    padding: 8,
+    padding: 10,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 20,
   },
   skipText: {
     fontSize: 14,
-    color: COLORS.textMuted,
+    color: COLORS.text,
     fontWeight: '600',
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    gap: 24,
+    paddingHorizontal: 28,
+    paddingBottom: 120,
+    zIndex: 10,
   },
   iconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 30,
+    width: 96,
+    height: 96,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 24,
+    borderWidth: 1,
   },
   title: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '800',
     color: COLORS.text,
     textAlign: 'center',
-    letterSpacing: -0.5,
+    letterSpacing: -0.8,
+    marginBottom: 12,
   },
   description: {
     fontSize: 16,
-    color: COLORS.textMuted,
+    color: 'rgba(248,248,248,0.85)',
     textAlign: 'center',
-    lineHeight: 24,
-    maxWidth: 320,
+    lineHeight: 25,
+    maxWidth: 340,
+  },
+  bottomBar: {
+    paddingHorizontal: 24,
+    paddingBottom: 48,
+    zIndex: 10,
   },
   progress: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
-    marginBottom: 32,
+    marginBottom: 24,
   },
   progressDot: {
-    width: 8,
-    height: 8,
+    width: 7,
+    height: 7,
     borderRadius: 4,
-    backgroundColor: COLORS.border,
+    backgroundColor: 'rgba(255,255,255,0.3)',
   },
   progressDotActive: {
     backgroundColor: COLORS.primary,
-    width: 24,
+    width: 28,
   },
   progressDotCompleted: {
     backgroundColor: COLORS.primaryMuted,

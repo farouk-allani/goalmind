@@ -10,10 +10,12 @@ import {
   ActivityIndicator,
   StyleSheet,
   RefreshControl,
+  Image,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { COLORS } from '@/types';
+import { COLORS, GRADIENTS } from '@/types';
 import { useAIStore } from '@/stores';
 import { useFootballData } from '@/hooks/useFootballData';
 import { formatTeamStatsForAnalysis } from '@/lib/data/football';
@@ -31,17 +33,43 @@ export default function AnalyzeScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Premium Hero Banner */}
+      <View style={styles.heroContainer}>
+        <Image 
+          source={require('@/assets/brand/hero-stadium.jpg')} 
+          style={styles.heroImage}
+          resizeMode="cover"
+        />
+        <LinearGradient
+          colors={['rgba(10,10,10,0.2)', 'rgba(10,10,10,0.75)', 'rgba(10,10,10,0.95)']}
+          style={styles.heroGradient}
+        />
+        <View style={styles.heroContent}>
+          <View style={styles.heroLogoRow}>
+            <Image 
+              source={require('@/assets/brand/logo-mark.jpg')} 
+              style={styles.heroLogo}
+              resizeMode="contain"
+            />
+            <View>
+              <Text style={styles.heroTitle}>GOALMIND</Text>
+              <Text style={styles.heroTagline}>On-device AI for the beautiful game</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>GoalMind</Text>
-          <Text style={styles.subtitle}>AI Football Companion</Text>
+          <Text style={styles.greeting}>Matches</Text>
+          <Text style={styles.subtitle}>Tether Developers Cup • Live & Upcoming</Text>
         </View>
         <View style={styles.headerRight}>
           <View style={styles.statusBadge}>
             <View style={[styles.statusDot, { backgroundColor: modelsLoaded ? COLORS.success : COLORS.warning }]} />
             <Text style={styles.statusText}>
-              {modelsLoaded ? 'AI Ready' : 'Loading AI...'}
+              {modelsLoaded ? 'On-device AI' : 'Loading AI...'}
             </Text>
           </View>
           {isLive && (
@@ -208,8 +236,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background, paddingHorizontal: 20, paddingTop: 60 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
   headerRight: { alignItems: 'flex-end', gap: 8 },
-  greeting: { fontSize: 28, fontWeight: '800', color: COLORS.text, letterSpacing: -0.5 },
-  subtitle: { fontSize: 14, color: COLORS.textMuted, marginTop: 4 },
+  greeting: { fontSize: 24, fontWeight: '800', color: COLORS.text, letterSpacing: -0.4 },
+  subtitle: { fontSize: 12, color: COLORS.gold, marginTop: 2, fontWeight: '600' },
   statusBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, gap: 6 },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   statusText: { fontSize: 12, color: COLORS.textMuted, fontWeight: '600' },
@@ -224,17 +252,28 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text },
   lastUpdated: { fontSize: 11, color: COLORS.textDim },
-  liveMatchCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, marginRight: 12, gap: 12, borderWidth: 1, borderColor: COLORS.error + '30' },
+  liveMatchCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 14, padding: 16, marginRight: 12, gap: 12, borderWidth: 1, borderColor: COLORS.error + '25' },
   liveTeamName: { fontSize: 16, fontWeight: '700', color: COLORS.text },
   liveScoreContainer: { alignItems: 'center' },
   liveScore: { fontSize: 20, fontWeight: '800', color: COLORS.text },
   liveMinute: { fontSize: 10, color: COLORS.error, fontWeight: '700', marginTop: 2 },
   matchList: { flex: 1 },
-  matchCard: { backgroundColor: COLORS.surface, borderRadius: 16, padding: 20, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border },
+  matchCard: { 
+    backgroundColor: COLORS.surface, 
+    borderRadius: 18, 
+    padding: 20, 
+    marginBottom: 14, 
+    borderWidth: 1, 
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+  },
   matchCardPressed: { opacity: 0.8, transform: [{ scale: 0.98 }] },
   matchCardSelected: { borderColor: COLORS.primary },
   matchCompetition: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
-  competitionText: { fontSize: 12, color: COLORS.accent, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1 },
+  competitionText: { fontSize: 11, color: COLORS.gold, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.5 },
   matchLiveBadge: { backgroundColor: COLORS.error + '20', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginLeft: 'auto' },
   matchLiveText: { fontSize: 10, color: COLORS.error, fontWeight: '700' },
   matchTeams: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
@@ -247,12 +286,81 @@ const styles = StyleSheet.create({
   matchTimeSmall: { fontSize: 11, color: COLORS.textDim, marginTop: 2 },
   scoreRow: { alignItems: 'center', marginBottom: 12 },
   scoreText: { fontSize: 20, fontWeight: '800', color: COLORS.text },
-  analyzeButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: COLORS.primaryMuted, paddingVertical: 12, borderRadius: 10 },
-  analyzeButtonText: { fontSize: 14, fontWeight: '600', color: COLORS.primary },
+  analyzeButton: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    gap: 8, 
+    backgroundColor: COLORS.primaryMuted, 
+    paddingVertical: 13, 
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '30',
+  },
+  analyzeButtonText: { fontSize: 14, fontWeight: '700', color: COLORS.primary, letterSpacing: 0.2 },
   quickActions: { flexDirection: 'row', gap: 12, paddingVertical: 16 },
-  quickAction: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: COLORS.surface, paddingVertical: 14, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border },
-  quickActionText: { fontSize: 14, fontWeight: '600', color: COLORS.textMuted },
+  quickAction: { 
+    flex: 1, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    gap: 8, 
+    backgroundColor: COLORS.surfaceElevated, 
+    paddingVertical: 15, 
+    borderRadius: 14, 
+    borderWidth: 1, 
+    borderColor: COLORS.border 
+  },
+  quickActionText: { fontSize: 13, fontWeight: '700', color: COLORS.textMuted },
   emptyState: { alignItems: 'center', paddingVertical: 60 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text, marginTop: 16 },
   emptySubtitle: { fontSize: 14, color: COLORS.textMuted, textAlign: 'center', marginTop: 8 },
+
+  // Premium Hero Banner
+  heroContainer: {
+    height: 168,
+    marginHorizontal: -20,
+    marginTop: -60,
+    marginBottom: 12,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  heroImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+  },
+  heroGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  heroContent: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingBottom: 18,
+  },
+  heroLogoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  heroLogo: {
+    width: 42,
+    height: 42,
+    borderRadius: 8,
+  },
+  heroTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.text,
+    letterSpacing: 2,
+  },
+  heroTagline: {
+    fontSize: 12,
+    color: 'rgba(248,248,248,0.75)',
+    marginTop: 1,
+    letterSpacing: 0.3,
+  },
 });

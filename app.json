@@ -8,9 +8,9 @@
     "userInterfaceStyle": "dark",
     "scheme": "goalmind",
     "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0a0a0a"
+      "image": "./assets/brand/splash.jpg",
+      "resizeMode": "cover",
+      "backgroundColor": "#0A0A0A"
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
@@ -24,7 +24,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0a0a0a"
+        "backgroundColor": "#0A0A0A"
       },
       "package": "com.goalmind.app",
       "permissions": [

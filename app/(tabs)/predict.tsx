@@ -8,9 +8,11 @@ import {
   ScrollView,
   Pressable,
   StyleSheet,
+  Image,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '@/types';
+import { COLORS, GRADIENTS } from '@/types';
 import { SAMPLE_MATCHES } from '@/lib/data/football';
 import { useAIStore } from '@/stores';
 import { predictMatch, type PredictionResult } from '@/lib/predictions/engine';
@@ -42,10 +44,18 @@ export default function PredictScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Predictions</Text>
-        <Text style={styles.subtitle}>Elo + Poisson + form analysis</Text>
+      {/* Hero Banner */}
+      <View style={styles.heroWrap}>
+        <Image 
+          source={require('@/assets/brand/hero-predictions.jpg')} 
+          style={styles.heroImage}
+          resizeMode="cover" 
+        />
+        <LinearGradient colors={['rgba(0,0,0,0.1)', 'rgba(10,10,10,0.92)']} style={styles.heroOverlay} />
+        <View style={styles.heroText}>
+          <Text style={styles.title}>Predictions</Text>
+          <Text style={styles.subtitle}>Statistical intelligence powered by on-device models</Text>
+        </View>
       </View>
 
       {/* Generate Button */}
@@ -203,10 +213,21 @@ export default function PredictScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background, paddingHorizontal: 20, paddingTop: 60 },
-  header: { marginBottom: 20 },
-  title: { fontSize: 28, fontWeight: '800', color: COLORS.text, letterSpacing: -0.5 },
-  subtitle: { fontSize: 14, color: COLORS.textMuted, marginTop: 4 },
+  container: { flex: 1, backgroundColor: COLORS.background, paddingHorizontal: 20, paddingTop: 16 },
+  heroWrap: { 
+    height: 138, 
+    marginHorizontal: -20, 
+    marginBottom: 20, 
+    borderRadius: 0, 
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  heroImage: { ...StyleSheet.absoluteFillObject },
+  heroOverlay: { ...StyleSheet.absoluteFillObject },
+  heroText: { position: 'absolute', bottom: 16, left: 20, right: 20 },
+  header: { marginBottom: 12 },
+  title: { fontSize: 26, fontWeight: '800', color: COLORS.text, letterSpacing: -0.6 },
+  subtitle: { fontSize: 13, color: 'rgba(163,163,163,0.9)', marginTop: 2 },
   algoInfo: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, marginBottom: 16, paddingHorizontal: 4 },
   algoText: { fontSize: 12, color: COLORS.textDim, flex: 1, lineHeight: 16 },
   predictionsList: { flex: 1 },
@@ -215,7 +236,7 @@ const styles = StyleSheet.create({
   teamCode: { fontSize: 24, fontWeight: '800', color: COLORS.text, letterSpacing: -0.5 },
   vsContainer: { alignItems: 'center' },
   vsText: { fontSize: 12, fontWeight: '700', color: COLORS.textDim, letterSpacing: 2 },
-  suggestedScore: { fontSize: 14, fontWeight: '700', color: COLORS.accent, marginTop: 4 },
+  suggestedScore: { fontSize: 14, fontWeight: '800', color: COLORS.gold, marginTop: 4, letterSpacing: 0.5 },
   probContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   probItem: { alignItems: 'center' },
   probLabel: { fontSize: 11, color: COLORS.textDim, marginBottom: 4 },

@@ -30,11 +30,12 @@ export const config = {
     offlineMode: true,
   },
 
-  // QVAC model config
+  // QVAC model config (display names — actual registry constants in lib/ai/models.ts)
   qvac: {
-    llm: 'llama-3.2-1b-instruct-q4_0',
-    embeddings: 'gte-large-fp16',
-    tts: 'piper-norman-en-us-medium',
+    llm: 'Llama 3.2 1B Instruct Q4_0',
+    vision: 'SmolVLM2 500M Multimodal Q8_0',
+    embeddings: 'EmbeddingGemma 300M Q8_0',
+    tts: 'Supertonic 3 Multilingual Q4_0',
   },
 
   // Competition defaults

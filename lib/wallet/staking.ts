@@ -169,16 +169,14 @@ export async function placeStake(
     placedAt: Date.now(),
   };
 
-  // In production, this would:
-  // 1. Transfer USDt to escrow contract via WDK
-  // 2. Record on-chain
-  // For hackathon, we persist locally
+  // Local-ledger demo: stakes persist on-device. On-chain escrow via WDK
+  // (account.transfer to an escrow contract) is the next milestone — no fake
+  // tx hashes are produced here; `txHash` stays unset until stakes are real.
   await saveStake(stake);
 
   return {
     success: true,
     stakeId,
-    txHash: `0x${generateHash(stakeId)}`,
   };
 }
 
@@ -290,16 +288,4 @@ export async function getUserStakes(userId: string): Promise<Stake[]> {
 
 export async function getAllStakes(): Promise<Stake[]> {
   return loadStakes();
-}
-
-// ---- Utilities ----
-
-function generateHash(input: string): string {
-  let hash = 0;
-  for (let i = 0; i < input.length; i++) {
-    const char = input.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash |= 0;
-  }
-  return Math.abs(hash).toString(16).padStart(64, '0');
 }

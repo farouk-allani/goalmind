@@ -3,12 +3,12 @@
 
 ## Scene 1: Opening (0:00 - 0:15)
 
-**Visual:** Dark screen, GoalMind logo appears with subtle animation.
+**Visual:** Cinematic stadium hero from GoalMind (assets/brand/hero-stadium.jpg style). Slow push, GoalMind logo mark + "Tether Developers Cup 2026" badge fades in elegantly. Dark premium aesthetic.
 
 **Narration:**
-"Football is the world's game. 4 billion fans. But when you're in the stadium, or watching at home, you're missing the tactical depth that makes the beautiful game beautiful."
+"Football is the world's game. Four billion fans. The Tether Developers Cup brings the best together — but fans deserve more than scores. They deserve insight they can trust, right in the moment."
 
-**Text on screen:** GoalMind — AI Football Companion
+**Text on screen:** GoalMind • On-Device AI for the Beautiful Game
 
 ---
 
@@ -25,71 +25,66 @@
 
 ## Scene 3: Introducing GoalMind (0:30 - 0:45)
 
-**Visual:** GoalMind app interface, clean dark theme, smooth animations.
+**Visual:** Beautiful onboarding flow using full-bleed cinematic images (stadium, on-device phone, wallet). Premium gradients and gold accents. Smooth transitions.
 
 **Narration:**
-"GoalMind is an AI football companion that runs entirely on your phone. No cloud. No API keys. No data leaving your device. Built with Tether's QVAC SDK for on-device AI and WDK for self-custodial wallets."
+"GoalMind is built for the global tournament. 100% on-device AI via Tether QVAC. Self-custodial wallets via WDK. No cloud, ever. Works perfectly in a packed stadium with no signal."
 
 **Text on screen:** 
-- 100% On-Device AI (QVAC)
-- Self-Custodial Wallet (WDK)
-- Zero Cloud Dependencies
+- QVAC: True On-Device AI
+- WDK: Real Self-Custodial
+- Stadium-Ready. Offline. Private.
 
 ---
 
-## Scene 4: Live Match Analysis (0:45 - 1:15)
+## Scene 4: Live Match Analysis + Camera (0:45 - 1:20)
 
-**Visual:** User opens app, selects a match, taps "Analyze". AI processing animation, then tactical breakdown appears.
+**Visual:** Stunning home screen with large cinematic stadium hero banner. Tap a rich match card (gold accents, elevated). Enter match detail. One-tap "Analyze with AI". Show gorgeous PossessionBar, MomentumGauge, threat indicators. Then open Camera flow — point at screen or use demo mode.
 
 **Narration:**
-"Select any match and get instant tactical analysis. GoalMind processes team statistics, recent form, and historical data — all on your device. It identifies formations, pressing patterns, key threats, and momentum shifts."
+"Pick any match. Tap once. GoalMind delivers rich tactical analysis entirely on your device using QVAC — possession, momentum, key threats. Then use your camera to analyze live action in the stands."
 
 **Demo flow:**
-1. Open app → Home screen with upcoming matches
-2. Tap "Argentina vs France" → Match detail screen
-3. Tap "Run AI Analysis" → Loading animation
-4. Tactical breakdown appears: possession analysis, pressing intensity, key areas
-5. Scroll to see threat indicators and momentum gauge
+1. Home with beautiful hero → Tap a match
+2. "Analyze with AI" → Rich visual breakdown loads
+3. Scroll analysis components
+4. Open Camera tab → Capture or demo vision analysis
 
-**Text on screen:** Powered by QVAC — All inference runs locally
+**Text on screen:** QVAC Vision + Analysis • All On Device
 
 ---
 
-## Scene 5: AI Predictions (1:15 - 1:45)
+## Scene 5: Smart Predictions + Staking (1:20 - 1:55)
 
-**Visual:** Predictions tab, generate predictions, probability bars animate.
+**Visual:** Predictions screen with dedicated dramatic data-overlay hero. Generate predictions. Beautiful animated probability bars + gold xG and confidence. Tap a prediction card to reveal factors. Show "Stake on this" action flowing toward wallet.
 
 **Narration:**
-"Get AI-powered match predictions with expected goals and confidence scores. The prediction engine runs on-device, so your predictions stay private. No one knows what you're thinking — not even us."
+"Statistical predictions powered by Elo and Poisson — with full transparency. All on-device. Then use your WDK wallet to stake on your convictions with real skin in the game."
 
 **Demo flow:**
-1. Tap "Predictions" tab
-2. Tap "Generate Predictions" → Processing animation
-3. Prediction cards appear with probability bars
-4. Show xG comparison and confidence scores
+1. Predictions tab with hero
+2. Generate → Stunning cards
+3. Expand factors
+4. Tap "Stake" (demo flow into wallet)
 
-**Text on screen:** Your predictions. Your privacy.
+**Text on screen:** On-Device Intelligence → Real WDK Stakes
 
 ---
 
-## Scene 6: Self-Custodial Wallet (1:45 - 2:15)
+## Scene 6: Fan Wallet + Intelligent Agent (1:55 - 2:30)
 
-**Visual:** Wallet tab, create wallet, send tip flow.
+**Visual:** Stunning wallet hero banner. Create real WDK wallet. Show balance + USDt. Demonstrate tipping. Then highlight the AI Agent section — show agent logic based on high confidence prediction (e.g. "Agent recommends small tip on strong home favorite").
 
 **Narration:**
-"GoalMind includes a self-custodial wallet built with Tether's WDK. Generate your wallet in seconds. Tip other fans during matches. Stake predictions. Your keys, your crypto."
+"True self-custodial wallets with WDK. Send tips to other fans instantly. Our agent uses live predictions to suggest (and optionally execute within your limits) intelligent fan engagement actions — all with keys you control."
 
 **Demo flow:**
-1. Tap "Wallet" tab → "Create Wallet"
-2. Wallet initialized with address
-3. Tap "Send Tip" → Enter recipient and amount
-4. Tip sent confirmation
-5. Show recent tips list
+1. Wallet tab (beautiful UI)
+2. Create wallet
+3. Send contextual tip (e.g. after good prediction)
+4. Show Agent strategy panel + simulated action
 
-**Text on screen:**
-- Self-Custodial (WDK)
-- Fan-to-Fan Tipping
-- Prediction Stakes
+**Text on screen:** WDK Primitives • Agent Intelligence • You Control the Keys
 
 ---
 
@@ -124,32 +119,40 @@
 
 ---
 
-## Scene 9: Closing (2:45 - 3:00)
+## Scene 8: Offline + Closing (2:30 - 3:00)
 
-**Visual:** GoalMind logo, GitHub link, author credit.
+**Visual:** Phone in airplane mode still running full analysis + commentary. End on trophy cup visual + beautiful app mock + "Tether Developers Cup 2026" + GitHub.
 
 **Narration:**
-"GoalMind. AI football analysis in your pocket. Self-custodial fan engagement. Built for the Tether Developers Cup 2026."
+"GoalMind works completely offline in the stadium. On-device AI. Self-custodial money. Built for the biggest moments of the beautiful game — and the Tether Developers Cup 2026."
 
 **Text on screen:**
-- GoalMind
-- github.com/farouk-allani/goalmind
-- Farouk Allani
+GoalMind
+On-Device QVAC + Real WDK
+github.com/... (update)
+Built for Tether Developers Cup 2026
 
-**Final text:** Thank you.
+**Final frame:** Trophy asset + "The thinking fan's companion" + Thank you.
 
 ---
 
-## Production Notes
+## Production Notes (Updated for New Premium Design)
 
-**Music:** Upbeat electronic, subtle, not distracting. Build energy during demo sections.
+**Music:** Subtle, building, cinematic sports electronic. Low in mix.
 
-**Pacing:** Quick cuts during demo, slower during explanations.
+**Visuals to highlight:**
+- Full-bleed cinematic hero images on onboarding + tabs
+- Rich match cards and gradient buttons
+- The new tournament trophy banner in Match Detail
+- Possession / Momentum / Stats visuals
+- Wallet with gold USDt accents + trophy agent visual
+- Settings app mockup showcase
+- Camera + commentary in action
 
-**Graphics:** Clean, dark theme matching the app. Minimal text, let the app speak.
+**Pacing:** Show the beauty of the UI. Let the screens breathe. Record in high quality.
 
-**Screen recording:** Use iOS simulator or Android emulator for clean captures.
+**Screen recording:** Record on a physical device (QVAC inference does not run on emulators). Use the new assets/brand/ for B-roll if needed.
 
-**Voiceover:** Professional, confident, technical but accessible. Not salesy.
+**Voiceover:** Confident, clear, proud of the engineering.
 
-**Total duration:** 3:00 exactly.
+**Total duration:** 3:00 max. Aim for 2:45 + buffer.

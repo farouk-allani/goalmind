@@ -190,6 +190,8 @@ Generate commentary for this moment.`;
 const styles = StyleSheet.create({
   container: {
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   header: {
     flexDirection: 'row',

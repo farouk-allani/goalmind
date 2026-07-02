@@ -1,7 +1,7 @@
 // GoalMind — Home / Live Analysis Screen (Enhanced)
 // Main screen: real matches, live status, AI analysis.
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,24 +12,62 @@ import {
   RefreshControl,
   Image,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { COLORS, GRADIENTS } from '@/types';
-import { useAIStore } from '@/stores';
+import { useAIStore, useMatchStore } from '@/stores';
 import { useFootballData } from '@/hooks/useFootballData';
 import { formatTeamStatsForAnalysis } from '@/lib/data/football';
+import { ensureModelLoaded } from '@/lib/ai/models';
 import { Badge } from '@/components/ui';
 
 export default function AnalyzeScreen() {
-  const { modelsLoaded } = useAIStore();
+  const { modelsLoaded, setModelsLoaded } = useAIStore();
   const { matches, liveMatches, loading, error, isLive, refresh, lastUpdated } = useFootballData();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [downloadPct, setDownloadPct] = useState<number | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  // Preload the on-device LLM on first launch with real download progress.
+  // Other models (vision, TTS, embeddings) download on first use of their feature.
+  useEffect(() => {
+    if (modelsLoaded) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        await ensureModelLoaded('llm', (p) => {
+          if (!cancelled) setDownloadPct(Math.round(p.percentage));
+        });
+        if (!cancelled) {
+          setModelsLoaded(true);
+          setDownloadPct(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setAiError(err instanceof Error ? err.message : 'Failed to load AI model');
+          setDownloadPct(null);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [modelsLoaded]);
+
+  const selectMatch = useMatchStore((s) => s.selectMatch);
 
   const handleMatchSelect = useCallback((match: any) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSelectedId(match.id);
+    // The detail screen reads the selected match from the store so that
+    // live-API matches (whose ids aren't in SAMPLE_MATCHES) resolve too.
+    selectMatch(match);
     router.push(`/match/${match.id}`);
-  }, []);
+  }, [selectMatch]);
 
   return (
     <View style={styles.container}>
@@ -53,7 +91,7 @@ export default function AnalyzeScreen() {
             />
             <View>
               <Text style={styles.heroTitle}>GOALMIND</Text>
-              <Text style={styles.heroTagline}>On-device AI for the beautiful game</Text>
+              <Text style={styles.heroTagline}>On-device AI • Tether Developers Cup 2026</Text>
             </View>
           </View>
         </View>
@@ -61,10 +99,11 @@ export default function AnalyzeScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Text style={styles.greeting}>Matches</Text>
-          <Text style={styles.subtitle}>Tether Developers Cup • Live & Upcoming</Text>
+          <Image source={require('@/assets/brand/trophy-cup.jpg')} style={{ width: 22, height: 22, borderRadius: 3 }} />
         </View>
+        <Text style={styles.subtitle}>Tether Developers Cup 2026 • Knockout Stage</Text>
         <View style={styles.headerRight}>
           <View style={styles.statusBadge}>
             <View style={[styles.statusDot, { backgroundColor: modelsLoaded ? COLORS.success : COLORS.warning }]} />
@@ -81,13 +120,27 @@ export default function AnalyzeScreen() {
         </View>
       </View>
 
-      {/* AI Status Card */}
-      {!modelsLoaded && (
+      {/* AI Status Card — real model download progress */}
+      {!modelsLoaded && !aiError && (
         <View style={styles.aiCard}>
           <ActivityIndicator color={COLORS.primary} size="small" />
           <Text style={styles.aiCardText}>
-            Loading on-device AI models...{'\n'}
-            <Text style={styles.aiCardSubtext}>First launch downloads ~1.5GB. No data leaves your device.</Text>
+            {downloadPct !== null && downloadPct < 100
+              ? `Downloading on-device AI model... ${downloadPct}%`
+              : 'Loading on-device AI model...'}
+            {'\n'}
+            <Text style={styles.aiCardSubtext}>
+              Llama 3.2 1B (~800 MB) on first launch. No data leaves your device.
+            </Text>
+          </Text>
+        </View>
+      )}
+      {aiError && (
+        <View style={styles.aiCard}>
+          <Ionicons name="alert-circle" size={18} color={COLORS.warning} />
+          <Text style={styles.aiCardText}>
+            On-device AI unavailable{'\n'}
+            <Text style={styles.aiCardSubtext}>{aiError}</Text>
           </Text>
         </View>
       )}
@@ -219,12 +272,22 @@ export default function AnalyzeScreen() {
 
       {/* Quick Actions */}
       <View style={styles.quickActions}>
-        <Pressable style={styles.quickAction} onPress={() => router.push('/predict')}>
+        <Pressable 
+          style={styles.quickAction} 
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/predict');
+          }}>
           <Ionicons name="trending-up" size={20} color={COLORS.secondary} />
           <Text style={styles.quickActionText}>Predictions</Text>
         </Pressable>
-        <Pressable style={styles.quickAction} onPress={() => router.push('/wallet')}>
-          <Ionicons name="wallet" size={20} color={COLORS.accent} />
+        <Pressable 
+          style={styles.quickAction} 
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/wallet');
+          }}>
+          <Ionicons name="wallet" size={20} color={COLORS.gold} />
           <Text style={styles.quickActionText}>Wallet</Text>
         </Pressable>
       </View>

@@ -2,7 +2,14 @@
 
 ## Overview
 
-GoalMind is a React Native + Expo mobile application that provides AI-powered football analysis and self-custodial fan wallet functionality. All AI inference runs on-device using QVAC SDK, and the wallet is built with WDK.
+GoalMind is the premium on-device AI football companion built for the **Tether Developers Cup 2026**.
+
+A React Native + Expo mobile app delivering:
+- Deep QVAC on-device intelligence (multi-agent, vision, RAG, TTS)
+- Full-featured WDK self-custodial wallet + agent + staking/pools
+- Tournament-themed experience with beautiful cinematic UI
+
+Everything stays private and works offline in the stands.
 
 ## Core Architecture
 

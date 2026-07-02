@@ -14,6 +14,7 @@ import {
   validateSeedPhrase,
   switchChain as switchChainWDK,
   formatAddress,
+  DEFAULT_CHAIN,
   type ChainId,
   type WalletInstance,
   CHAINS,
@@ -44,7 +45,7 @@ interface UseWalletReturn {
 }
 
 export function useWallet(options: UseWalletOptions = {}): UseWalletReturn {
-  const { autoInit = false, defaultChain = 'ethereum' } = options;
+  const { autoInit = false, defaultChain = DEFAULT_CHAIN } = options;
 
   const { wallet, initializing, tips, setWallet, setInitializing, addTip, reset: resetStore } = useWalletStore();
   const [error, setError] = useState<string | null>(null);

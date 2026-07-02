@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Image,
 } from 'react-native';
+import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS } from '@/types';
@@ -54,7 +55,7 @@ export default function PredictScreen() {
         <LinearGradient colors={['rgba(0,0,0,0.1)', 'rgba(10,10,10,0.92)']} style={styles.heroOverlay} />
         <View style={styles.heroText}>
           <Text style={styles.title}>Predictions</Text>
-          <Text style={styles.subtitle}>Statistical intelligence powered by on-device models</Text>
+          <Text style={styles.subtitle}>For the Tether Developers Cup • Fully private</Text>
         </View>
       </View>
 
@@ -194,6 +195,14 @@ export default function PredictScreen() {
                   {isExpanded ? 'Hide factors' : 'View factors'}
                 </Text>
               </View>
+
+              {/* Direct WDK utility link */}
+              <Pressable 
+                style={styles.stakeBtn}
+                onPress={() => router.push('/wallet')}>
+                <Ionicons name="cash-outline" size={15} color={COLORS.gold} />
+                <Text style={styles.stakeBtnText}>Stake on this with your WDK wallet</Text>
+              </Pressable>
             </Pressable>
           );
         })}
@@ -268,6 +277,19 @@ const styles = StyleSheet.create({
   factorDesc: { fontSize: 11, color: COLORS.textDim, marginTop: 2 },
   expandRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 12 },
   expandText: { fontSize: 12, color: COLORS.textDim },
+  stakeBtn: { 
+    marginTop: 14, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    gap: 6, 
+    backgroundColor: COLORS.gold + '12', 
+    paddingVertical: 10, 
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.gold + '25',
+  },
+  stakeBtnText: { color: COLORS.gold, fontWeight: '700', fontSize: 13 },
   emptyState: { alignItems: 'center', paddingVertical: 60 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text, marginTop: 16 },
   emptySubtitle: { fontSize: 14, color: COLORS.textMuted, textAlign: 'center', marginTop: 8, lineHeight: 20 },

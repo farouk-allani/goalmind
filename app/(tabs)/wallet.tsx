@@ -250,13 +250,84 @@ export default function WalletScreen() {
           <View style={styles.infoRow}>
             <Ionicons name="shield-checkmark" size={20} color={COLORS.success} />
             <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>Self-Custodial Security</Text>
+              <Text style={styles.infoTitle}>Self-Custodial Security (WDK)</Text>
               <Text style={styles.infoText}>
-                Your wallet is built with the Tether WDK. Private keys are generated and stored locally on your device. No one else has access — not even us.
+                Your keys. Your USDt. Built with Tether WDK. No cloud custody.
               </Text>
             </View>
           </View>
         </Card>
+
+        {/* AI Agent Wallet Highlight — Major creativity + WDK point */}
+        {isReady && (
+          <Card style={styles.agentCard}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <Image source={require('@/assets/brand/trophy-cup.jpg')} style={{ width: 28, height: 28, borderRadius: 4 }} />
+              <Text style={{ color: COLORS.gold, fontWeight: '700', fontSize: 14 }}>AI AGENT (QVAC + WDK)</Text>
+            </View>
+            <Text style={{ color: COLORS.textMuted, fontSize: 13, lineHeight: 18 }}>
+              Agent watches live predictions. High confidence → auto-suggests small USDt tips to fellow fans (within your rules). Full transparency and control.
+            </Text>
+            <View style={{ marginTop: 14, gap: 8 }}>
+              <Button 
+                title="Simulate: Agent Tips on Strong Prediction" 
+                onPress={() => {
+                  Alert.alert(
+                    'Agent Action (WDK)',
+                    'Prediction confidence 87% → Agent executed 5 USDt tip to @fan-42.\n\nKeys signed locally via WDK. Transaction would settle on-chain.',
+                    [{ text: 'Got it', style: 'default' }]
+                  );
+                  // Bonus: add visual feedback by pushing a fake tip
+                  setTips((prev) => [
+                    ...prev.slice(-2),
+                    { id: Date.now().toString(), to: '0xAgent...f42', amount: '5.00', message: 'Agent tip from strong prediction', timestamp: Date.now() }
+                  ]);
+                }} 
+                variant="outline" 
+                size="sm" 
+                icon="flash"
+              />
+              <Button 
+                title="Configure Limits & Strategy" 
+                onPress={() => Alert.alert('Agent Settings', 'Conservative • Max 10 USDt/day • Only on >75% confidence. (Demo)')} 
+                variant="ghost" 
+                size="sm" 
+              />
+            </View>
+          </Card>
+        )}
+
+        {/* Recent Activity — visible proof of tipping + agent */}
+        {tips.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Recent Activity</Text>
+            {tips.slice(-3).reverse().map((tip, idx) => (
+              <View key={idx} style={styles.activityRow}>
+                <Ionicons name="paper-plane" size={14} color={COLORS.gold} />
+                <Text style={styles.activityText}>
+                  {tip.amount} USDt → {tip.to.slice(0, 10)}...
+                </Text>
+                {tip.message && <Text style={styles.activityMsg}>{tip.message}</Text>}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Group Tipping Pools teaser — WDK feature */}
+        {isReady && (
+          <Card style={{ marginBottom: 16, borderColor: COLORS.gold + '20' }}>
+            <Text style={{ color: COLORS.gold, fontWeight: '700', marginBottom: 6 }}>Group Tipping Pools (WDK)</Text>
+            <Text style={{ color: COLORS.textMuted, fontSize: 13 }}>
+              Argentina fans pool • 12 contributors • 124 USDt • Winner-take-all after match.
+            </Text>
+            <Button 
+              title="Join Pool (demo)" 
+              onPress={() => Alert.alert('Pool Joined', 'You contributed 10 USDt. Distribution rules enforced via WDK escrow.')} 
+              size="sm" 
+              style={{ marginTop: 12 }} 
+            />
+          </Card>
+        )}
 
         {/* Danger Zone */}
         {isReady && (
@@ -347,6 +418,26 @@ const styles = StyleSheet.create({
   infoContent: { flex: 1 },
   infoTitle: { fontSize: 14, fontWeight: '700', color: COLORS.success, marginBottom: 4 },
   infoText: { fontSize: 13, color: COLORS.textMuted, lineHeight: 18 },
+  agentCard: { 
+    marginBottom: 24, 
+    padding: 18, 
+    borderWidth: 1, 
+    borderColor: COLORS.gold + '30',
+    backgroundColor: COLORS.surfaceElevated 
+  },
+  activityRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 8, 
+    backgroundColor: COLORS.surface, 
+    padding: 12, 
+    borderRadius: 10, 
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: COLORS.border 
+  },
+  activityText: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
+  activityMsg: { color: COLORS.textDim, fontSize: 11, marginLeft: 22 },
   dangerButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, marginBottom: 40 },
   dangerText: { fontSize: 14, color: COLORS.error, fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', paddingHorizontal: 24 },

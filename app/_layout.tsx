@@ -25,9 +25,10 @@ export default function RootLayout() {
             name="match/[id]"
             options={{
               headerShown: true,
-              headerTitle: 'Match Analysis',
+              headerTitle: 'Tether Developers Cup • Match',
               headerStyle: { backgroundColor: COLORS.surface },
               headerTintColor: COLORS.text,
+              headerTitleStyle: { fontWeight: '700', fontSize: 15 },
               presentation: 'modal',
             }}
           />

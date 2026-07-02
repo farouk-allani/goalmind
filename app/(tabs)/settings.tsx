@@ -1,7 +1,7 @@
 // GoalMind — Settings Screen (Enhanced)
 // App info, model status, wallet info, tech stack.
 
-import { View, Text, ScrollView, Pressable, Alert, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, Pressable, Alert, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '@/types';
 import { useAIStore, useWalletStore } from '@/stores';
@@ -17,7 +17,7 @@ export default function SettingsScreen() {
     {
       title: 'AI Models',
       items: [
-        { label: 'LLM Status', value: modelsLoaded ? 'Loaded' : 'Not Loaded', icon: 'cpu' as const, color: modelsLoaded ? COLORS.success : COLORS.warning },
+        { label: 'LLM Status', value: modelsLoaded ? 'Loaded' : 'Not Loaded', icon: 'hardware-chip' as const, color: modelsLoaded ? COLORS.success : COLORS.warning },
         { label: 'Model', value: config.qvac.llm, icon: 'hardware-chip' as const, color: COLORS.primary },
         { label: 'Inference', value: 'On-Device (QVAC)', icon: 'phone-portrait' as const, color: COLORS.secondary },
         { label: 'Data Privacy', value: 'No Cloud', icon: 'shield-checkmark' as const, color: COLORS.success },
@@ -55,7 +55,23 @@ export default function SettingsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Settings</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Image source={require('@/assets/brand/logo-mark.jpg')} style={{ width: 28, height: 28, borderRadius: 6 }} />
+          <Text style={styles.title}>Settings</Text>
+        </View>
+        <Text style={{ color: COLORS.gold, fontSize: 11, fontWeight: '700', marginTop: 2 }}>TETHER DEVELOPERS CUP 2026</Text>
+      </View>
+
+      {/* Showcase the premium design with app mockup */}
+      <View style={styles.mockupContainer}>
+        <Image 
+          source={require('@/assets/brand/app-mockup.jpg')} 
+          style={styles.mockupImage} 
+          resizeMode="cover" 
+        />
+        <View style={styles.mockupOverlay}>
+          <Text style={styles.mockupLabel}>Tournament-grade design</Text>
+        </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -147,8 +163,34 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background, paddingHorizontal: 20, paddingTop: 60 },
-  header: { marginBottom: 24 },
-  title: { fontSize: 28, fontWeight: '800', color: COLORS.text, letterSpacing: -0.5 },
+  header: { marginBottom: 12 },
+  title: { fontSize: 26, fontWeight: '800', color: COLORS.text, letterSpacing: -0.4 },
+  mockupContainer: {
+    marginHorizontal: -20,
+    marginBottom: 24,
+    height: 168,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  mockupImage: {
+    width: '100%',
+    height: '100%',
+  },
+  mockupOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(10,10,10,0.75)',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  mockupLabel: {
+    color: COLORS.gold,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
   section: { marginBottom: 24 },
   sectionTitle: { fontSize: 13, fontWeight: '600', color: COLORS.textDim, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 },
   sectionCard: { backgroundColor: COLORS.surface, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, overflow: 'hidden' },

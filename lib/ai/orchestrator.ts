@@ -1,11 +1,20 @@
 // GoalMind — Multi-Agent Orchestration
 // Multiple specialized AI agents that collaborate to provide insights.
-// Uses QVAC for local inference with tool calling.
+// Uses QVAC native tool calling: the LLM decides which tools to call,
+// the SDK parses the calls, and we invoke real handlers (RAG retrieval,
+// the statistical prediction engine, team stats) before the final answer.
 
-import { generateText, generateTextStream } from './models';
-import { queryKnowledgeBase, ragQuery } from './rag';
-import { predictMatch, type PredictionResult } from '@/lib/predictions/engine';
-import type { MatchData, TeamData } from '@/lib/data/football';
+import { z } from 'zod';
+import { completion, type ToolInput } from '@qvac/sdk';
+import { generateText, generateStructured, ensureModelLoaded } from './models';
+import { queryKnowledgeBase } from './rag';
+import { predictMatch } from '@/lib/predictions/engine';
+import {
+  SAMPLE_MATCHES,
+  SAMPLE_TEAMS,
+  formatTeamStatsForAnalysis,
+  type MatchData,
+} from '@/lib/data/football';
 
 // ---- Agent Types ----
 
@@ -44,51 +53,134 @@ export interface AnalysisReport {
   timestamp: number;
 }
 
-// ---- Tool Definitions ----
+// ---- Tool Definitions (QVAC native tool calling) ----
+// These are passed to `completion({ tools })`. The SDK constrains the model's
+// output to valid tool-call grammar, parses calls, and `toolCall.invoke()`
+// runs the real handler below.
 
-export interface Tool {
-  name: string;
-  description: string;
-  parameters: Record<string, { type: string; description: string; required: boolean }>;
-  execute: (params: Record<string, any>) => Promise<string>;
+function findTeamByName(name: string) {
+  const needle = name.trim().toLowerCase();
+  return Object.values(SAMPLE_TEAMS).find(
+    (t) => t.name.toLowerCase().includes(needle) || t.shortName.toLowerCase() === needle
+  );
 }
 
-const tools: Tool[] = [
+const agentTools = [
   {
     name: 'query_knowledge',
-    description: 'Query the football knowledge base for rules, history, tactics, player info, etc.',
-    parameters: {
-      query: { type: 'string', description: 'The search query', required: true },
-    },
-    execute: async (params) => {
-      const results = await queryKnowledgeBase(params.query, 2);
-      return results.map(r => `${r.document.title}: ${r.relevantChunk}`).join('\n\n');
+    description:
+      'Search the on-device football knowledge base (rules, tactics, history, players, teams). Returns the most relevant passages.',
+    parameters: z.object({
+      query: z.string().describe('The search query'),
+    }),
+    handler: async ({ query }: { query: string }) => {
+      const results = await queryKnowledgeBase(query, 2);
+      if (results.length === 0) return 'No relevant knowledge found.';
+      return results.map((r) => `${r.document.title}: ${r.relevantChunk}`).join('\n\n');
     },
   },
   {
     name: 'predict_match',
-    description: 'Generate a statistical prediction for a match outcome',
-    parameters: {
-      homeTeam: { type: 'string', description: 'Home team name', required: true },
-      awayTeam: { type: 'string', description: 'Away team name', required: true },
-    },
-    execute: async (params) => {
-      // This would use the prediction engine
-      return `Prediction for ${params.homeTeam} vs ${params.awayTeam}: Use the prediction engine for detailed analysis.`;
+    description:
+      'Run the statistical prediction engine (Elo + Poisson + form) for a match between two known teams. Returns win/draw/loss probabilities and expected goals.',
+    parameters: z.object({
+      homeTeam: z.string().describe('Home team name'),
+      awayTeam: z.string().describe('Away team name'),
+    }),
+    handler: async ({ homeTeam, awayTeam }: { homeTeam: string; awayTeam: string }) => {
+      const match =
+        SAMPLE_MATCHES.find(
+          (m) =>
+            m.homeTeam.name.toLowerCase().includes(homeTeam.trim().toLowerCase()) &&
+            m.awayTeam.name.toLowerCase().includes(awayTeam.trim().toLowerCase())
+        ) ?? null;
+      const home = match?.homeTeam ?? findTeamByName(homeTeam);
+      const away = match?.awayTeam ?? findTeamByName(awayTeam);
+      if (!home || !away) return `Unknown team(s): ${homeTeam} vs ${awayTeam}.`;
+
+      const syntheticMatch: MatchData = match ?? {
+        ...SAMPLE_MATCHES[0],
+        id: `synthetic_${Date.now()}`,
+        homeTeam: home,
+        awayTeam: away,
+      };
+      const p = predictMatch(syntheticMatch);
+      return (
+        `Home win ${(p.homeWin * 100).toFixed(0)}%, draw ${(p.draw * 100).toFixed(0)}%, ` +
+        `away win ${(p.awayWin * 100).toFixed(0)}%. xG ${p.xgHome.toFixed(2)} vs ${p.xgAway.toFixed(2)}. ` +
+        `Confidence ${(p.confidence * 100).toFixed(0)}%.`
+      );
     },
   },
   {
     name: 'get_team_stats',
-    description: 'Get detailed statistics for a team',
-    parameters: {
-      team: { type: 'string', description: 'Team name or ID', required: true },
-    },
-    execute: async (params) => {
-      // Would fetch from data service
-      return `Statistics for ${params.team}: [Stats would be fetched from API or local data]`;
+    description: 'Get season statistics for a team (possession, shots, goals, form).',
+    parameters: z.object({
+      team: z.string().describe('Team name'),
+    }),
+    handler: async ({ team }: { team: string }) => {
+      const found = findTeamByName(team);
+      if (!found) return `No data for team "${team}".`;
+      return formatTeamStatsForAnalysis(found);
     },
   },
 ];
+
+/**
+ * Ask the LLM a question with the football tools available.
+ * Implements a full agentic loop: the model requests tools, we invoke the
+ * real handlers via the SDK, feed results back, and get the final answer.
+ */
+export async function askWithTools(
+  question: string,
+  systemPrompt: string = AGENT_SYSTEM_PROMPTS.analyst
+): Promise<{ answer: string; toolsUsed: string[] }> {
+  const modelId = await ensureModelLoaded('llm');
+
+  const history: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: question },
+  ];
+
+  const toolsUsed: string[] = [];
+
+  // Agentic loop: allow up to 3 rounds of tool use before the final answer.
+  for (let round = 0; round < 3; round++) {
+    const run = completion({
+      modelId,
+      history,
+      stream: false,
+      tools: agentTools as unknown as ToolInput[],
+    });
+    const final = await run.final;
+
+    if (final.toolCalls.length === 0) {
+      return { answer: final.contentText.trim(), toolsUsed };
+    }
+
+    for (const toolCall of final.toolCalls) {
+      toolsUsed.push(toolCall.name);
+      let result: string;
+      try {
+        result = toolCall.invoke
+          ? String(await toolCall.invoke())
+          : 'Tool handler unavailable.';
+      } catch (err) {
+        result = `Tool failed: ${err instanceof Error ? err.message : 'unknown error'}`;
+      }
+      history.push({ role: 'assistant', content: `Called ${toolCall.name}.` });
+      history.push({ role: 'user', content: `Tool result (${toolCall.name}): ${result}` });
+    }
+  }
+
+  // Tool budget exhausted — ask for a direct answer.
+  history.push({ role: 'user', content: 'Answer the original question now using the tool results above.' });
+  const answer = await generateText(
+    history.map((h) => `${h.role}: ${h.content}`).join('\n'),
+    systemPrompt
+  );
+  return { answer, toolsUsed };
+}
 
 // ---- Agent Implementations ----
 
@@ -136,33 +228,43 @@ export class AgentOrchestrator {
   ): Promise<AnalysisReport> {
     const { maxAgents = 3, includeKnowledge = true } = options || {};
 
-    // Step 1: Orchestrator analyzes the query and decides which agents to use
-    const orchestrationPrompt = `${AGENT_SYSTEM_PROMPTS.orchestrator}
-
-Query: "${query}"
+    // Step 1: Orchestrator decides which agents to use.
+    // QVAC structured output (json_schema) guarantees a parseable plan —
+    // the grammar is enforced by llama.cpp during generation.
+    const orchestrationPrompt = `Query: "${query}"
 ${match ? `Match: ${match.homeTeam.name} vs ${match.awayTeam.name}` : 'No specific match context.'}
 
-Available agents: coach, analyst, commentator, scout
-Available tools: query_knowledge, predict_match, get_team_stats
-
+Available agents: coach, analyst, commentator, scout.
 Break this query into sub-tasks and assign each to the most appropriate agent.
-Respond with a JSON array of tasks:
-[{"agent": "coach", "task": "description", "priority": 1}, ...]
+Only include agents relevant to the query. Maximum ${maxAgents} agents.`;
 
-Only include agents that are relevant to the query. Maximum ${maxAgents} agents.`;
-
-    const orchestrationResult = await generateText(orchestrationPrompt, AGENT_SYSTEM_PROMPTS.orchestrator);
-
-    // Parse tasks (simplified for hackathon)
-    let tasks: Array<{ agent: AgentRole; task: string }> = [];
+    let tasks: Array<{ agent: AgentRole; task: string }>;
     try {
-      // Try to extract JSON from response
-      const jsonMatch = orchestrationResult.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        tasks = JSON.parse(jsonMatch[0]);
-      }
+      const plan = await generateStructured<{ tasks: Array<{ agent: AgentRole; task: string }> }>(
+        orchestrationPrompt,
+        AGENT_SYSTEM_PROMPTS.orchestrator,
+        {
+          type: 'object',
+          properties: {
+            tasks: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  agent: { type: 'string', enum: ['coach', 'analyst', 'commentator', 'scout'] },
+                  task: { type: 'string' },
+                },
+                required: ['agent', 'task'],
+              },
+            },
+          },
+          required: ['tasks'],
+        },
+        'agent_plan'
+      );
+      tasks = plan.tasks;
     } catch {
-      // Fallback: assign to coach and analyst
+      // Model unavailable or malformed plan — sensible default coverage.
       tasks = [
         { agent: 'coach', task: query },
         { agent: 'analyst', task: query },

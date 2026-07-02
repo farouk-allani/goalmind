@@ -114,7 +114,7 @@ export interface WalletState {
   chain: SupportedChain;
 }
 
-export type SupportedChain = 'ethereum' | 'polygon' | 'arbitrum' | 'optimism';
+export type SupportedChain = 'sepolia' | 'ethereum' | 'polygon' | 'arbitrum' | 'optimism';
 
 export interface Tip {
   id: string;

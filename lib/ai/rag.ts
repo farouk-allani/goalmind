@@ -1,10 +1,8 @@
 // GoalMind — Football Knowledge Base with RAG
-// Uses QVAC embeddings for local retrieval-augmented generation.
-// All processing happens on-device. No cloud, no API keys.
+// Uses QVAC embeddings (EmbeddingGemma 300M, on-device) for retrieval,
+// and the on-device LLM for augmented answers. No cloud, no API keys.
 
-import { ensureModelLoaded, generateText } from './models';
-import type { ModelId } from '@qvac/sdk';
-import { completion } from '@qvac/sdk';
+import { embedText, embedTexts, generateText } from './models';
 
 // ---- Types ----
 
@@ -180,55 +178,25 @@ export async function initializeKnowledgeBase(
 
   onProgress?.('Loading embeddings model...');
 
-  // Load the embeddings model
-  const modelId = await ensureModelLoaded('embeddings');
-
-  onProgress?.('Computing document embeddings...');
-
-  // Process each document
+  // Chunk every document, then embed all chunks in one batched QVAC call.
+  const pending: { documentId: string; chunk: string }[] = [];
   for (const doc of FOOTBALL_KNOWLEDGE) {
-    const chunks = chunkDocument(doc);
-
-    for (const chunk of chunks) {
-      // Compute embedding using QVAC
-      // In production, this would use the actual embedding API
-      // For hackathon, we create a placeholder that would be replaced with real embeddings
-      const embedding = await computeEmbedding(modelId, chunk);
-
-      embeddingCache.push({
-        documentId: doc.id,
-        chunk,
-        embedding,
-      });
+    for (const chunk of chunkDocument(doc)) {
+      pending.push({ documentId: doc.id, chunk });
     }
   }
+
+  onProgress?.(`Embedding ${pending.length} chunks on-device...`);
+  const vectors = await embedTexts(pending.map((p) => p.chunk));
+
+  embeddingCache = pending.map((p, i) => ({
+    documentId: p.documentId,
+    chunk: p.chunk,
+    embedding: vectors[i],
+  }));
 
   embeddingsLoaded = true;
   onProgress?.(`Knowledge base ready: ${FOOTBALL_KNOWLEDGE.length} documents, ${embeddingCache.length} chunks`);
-}
-
-/**
- * Compute embedding for a text chunk using QVAC.
- */
-async function computeEmbedding(modelId: ModelId, text: string): Promise<number[]> {
-  // In production, this would call QVAC's embedding API
-  // For hackathon demo, we create a deterministic pseudo-embedding
-  // based on text content (for demonstration purposes)
-
-  // Simple hash-based pseudo-embedding for demo
-  const embedding: number[] = [];
-  for (let i = 0; i < 384; i++) {
-    let hash = 0;
-    for (let j = 0; j < text.length; j++) {
-      hash = ((hash << 5) - hash) + text.charCodeAt(j) + i;
-      hash |= 0;
-    }
-    embedding.push((Math.abs(hash) % 1000) / 1000);
-  }
-
-  // Normalize
-  const norm = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
-  return embedding.map(val => val / norm);
 }
 
 /**
@@ -243,9 +211,8 @@ export async function queryKnowledgeBase(
     await initializeKnowledgeBase();
   }
 
-  // Compute query embedding
-  const modelId = await ensureModelLoaded('embeddings');
-  const queryEmbedding = await computeEmbedding(modelId, query);
+  // Compute query embedding with the real on-device model
+  const queryEmbedding = await embedText(query);
 
   // Find most similar chunks
   const similarities = embeddingCache.map(entry => ({

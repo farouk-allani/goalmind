@@ -1,21 +1,28 @@
 // GoalMind — Camera Integration for Live Match Analysis
-// Uses expo-camera to capture match footage for AI analysis.
+// Captures a frame with expo-camera and runs it through the on-device
+// QVAC vision model (SmolVLM2 500M multimodal). No cloud, no API keys.
 
 import { useState, useRef, useCallback } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '@/types';
+import { analyzeImage, isModelLoaded } from '@/lib/ai/models';
 
 interface CameraAnalysisProps {
   onCapture?: (uri: string) => void;
   onAnalyze?: (analysis: string) => void;
 }
 
+const VISION_PROMPT = `You are a football tactical analyst watching a match. Describe what you see on the pitch: the phase of play, team shapes/formations if visible, player positioning, and one tactical observation. If this is not a football scene, say what it actually shows instead. Be concise (3-4 sentences).`;
+
 export function CameraAnalysis({ onCapture, onAnalyze }: CameraAnalysisProps) {
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>('back');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [downloadPct, setDownloadPct] = useState<number | null>(null);
   const cameraRef = useRef<CameraView>(null);
 
   const toggleFacing = useCallback(() => {
@@ -28,7 +35,6 @@ export function CameraAnalysis({ onCapture, onAnalyze }: CameraAnalysisProps) {
     try {
       setIsAnalyzing(true);
 
-      // Capture photo
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
         base64: false,
@@ -37,24 +43,27 @@ export function CameraAnalysis({ onCapture, onAnalyze }: CameraAnalysisProps) {
       if (photo) {
         onCapture?.(photo.uri);
 
-        // In production, this would send to QVAC for analysis
-        // For now, simulate analysis
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        // QVAC attachments take a filesystem path, not a file:// URI.
+        const imagePath = photo.uri.replace(/^file:\/\//, '');
 
-        const analysis = `Match Analysis (Camera):
-        
-Detected: Live football match in progress
-Identified: Two teams in formation
-Pitch: Natural grass, good conditions
-Lighting: Stadium floodlights
+        const needsDownload = !isModelLoaded('vision');
+        if (needsDownload) setDownloadPct(0);
 
-Note: Full computer vision analysis requires QVAC vision model integration.
-This is a placeholder for the camera-based analysis pipeline.`;
+        const analysis = await analyzeImage(imagePath, VISION_PROMPT, (p) => {
+          setDownloadPct(Math.round(p.percentage));
+        });
 
+        setDownloadPct(null);
         onAnalyze?.(analysis);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (error) {
-      console.error('Capture failed:', error);
+      console.error('Camera analysis failed:', error);
+      setDownloadPct(null);
+      onAnalyze?.(
+        `Vision analysis failed: ${error instanceof Error ? error.message : 'unknown error'}. ` +
+          'Make sure you are running a native build on a physical device with enough free storage for the vision model (~600 MB).'
+      );
     } finally {
       setIsAnalyzing(false);
     }
@@ -119,11 +128,14 @@ This is a placeholder for the camera-based analysis pipeline.`;
 
             <Pressable
               style={[styles.captureButton, isAnalyzing && styles.captureButtonActive]}
-              onPress={captureAndAnalyze}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                captureAndAnalyze();
+              }}
               disabled={isAnalyzing}
             >
               {isAnalyzing ? (
-                <Text style={styles.captureText}>Analyzing...</Text>
+                <Text style={styles.captureText}>Analyzing on-device...</Text>
               ) : (
                 <Ionicons name="scan" size={32} color={COLORS.background} />
               )}

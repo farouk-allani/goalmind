@@ -1,214 +1,131 @@
 # GoalMind ⚽🧠
 
-**AI Football Companion — On-device AI match analysis, commentary, predictions + self-custodial fan wallet**
+**The On-Device AI Companion for the Global Football Tournament**
 
-Built for the **Tether Developers Cup 2026** 🏆
+Built for the **Tether Developers Cup 2026** 🏆 — QVAC (Local AI) + WDK (Wallets) tracks.
 
-## What is GoalMind?
+Point your phone at the pitch for tactical AI analysis, stream match breakdowns from an LLM that runs entirely on your device, and put skin in the game through a self-custodial wallet — with an autonomous agent whose spending is hard-limited by WDK's transaction policy engine.
 
-GoalMind is a mobile app that brings AI-powered football analysis directly to your device — no cloud, no API keys, no data leaving your phone. Combined with a self-custodial wallet for fan engagement, it's the ultimate companion for football fans worldwide.
+**100% private. Works in the stadium with zero signal. No cloud AI, no API keys.**
 
-## Features
+## What's real (and what's a demo)
 
-### 🎥 Live Match Analysis
-Point your camera at a match and get real-time tactical analysis, formation tracking, and key insights. All inference runs locally via QVAC SDK.
+We believe judges should know exactly what they're looking at:
 
-### 🎙️ AI Commentary
-Real-time audio commentary generation in 6 languages (EN, FR, ES, DE, PT, AR). Text-to-speech runs entirely on-device. Works offline in stadiums.
+| Feature | Status |
+|---------|--------|
+| LLM match analysis (streamed token-by-token) | ✅ Real — QVAC `completion` on-device (Llama 3.2 1B) |
+| Camera tactical analysis | ✅ Real — QVAC multimodal vision (SmolVLM2 500M) |
+| RAG over football knowledge base | ✅ Real — QVAC `embed` (EmbeddingGemma 300M) + cosine retrieval |
+| Multi-agent orchestration | ✅ Real — QVAC native tool calling + structured output (json_schema) |
+| Spoken commentary (TTS) | ✅ Real — QVAC Supertonic 3 multilingual, played via expo-audio |
+| Statistical prediction engine | ✅ Real math — Elo + Poisson + form, runs instantly on-device |
+| Wallet create/restore (BIP-39) | ✅ Real — WDK seed generation + validation, keys in SecureStore |
+| Tips (on-chain transfers) | ✅ Real — WDK `account.transfer()` / `sendTransaction()`, Sepolia testnet by default |
+| Agent wallet with spending limits | ✅ Real — WDK **policy engine** (`registerPolicy`) denies over-limit txs before signing |
+| Prediction staking & tipping pools | 🟡 Local ledger demo — flows and math are real, settlement contract is roadmap |
 
-### 📊 Prediction Engine
-Statistical match predictions using Elo ratings, Poisson distribution, and form-weighted analysis. Includes expected goals (xG), suggested scores, and transparent prediction factors.
+## Quick start for judges
 
-### 💰 Self-Custodial Fan Wallet
-Built with Tether WDK for fan-to-fan tipping, prediction rewards, and match achievements. Supports Ethereum, Polygon, Arbitrum, and Optimism. You hold your own keys.
+**⚠ Physical device required** — QVAC (llama.cpp) does not run on emulators. Android needs API 29+.
 
-### 🤖 Agent Wallet (WDK Track)
-An AI agent that autonomously holds, sends, and manages USDt based on match analysis. Configurable strategies (conservative/moderate/aggressive), daily spending limits, and decision-making based on prediction confidence.
+```bash
+# 1. Install
+npm install
 
-### 📈 Prediction Staking (WDK Track)
-Escrow-based stakes on match outcomes with dynamic odds. Fans can stake on predictions and earn rewards. Includes user stats, win rate tracking, and pool settlement.
+# 2. Generate native projects (QVAC config plugin wires the Bare runtime)
+npx expo prebuild
 
-### 👥 Group Tipping Pools (WDK Track)
-Fans pool tips together for matches. Multiple distribution rules (proportional, equal, winner-take-all, top-three). Min/max contribution limits and pool analytics.
+# 3. Build & run on a connected physical device
+npx expo run:android --device   # or: npx expo run:ios --device
+```
 
-### 🔍 RAG Knowledge Base (QVAC Track)
-Retrieval-Augmented Generation over football knowledge using QVAC embeddings. Local document search for rules, tactics, history, player info, and team analysis. All processing on-device.
+First AI use downloads models from the QVAC registry (LLM ~800 MB; vision, embeddings, TTS on first use of each feature). After that, everything is fully offline.
 
-### 🎯 Multi-Agent Orchestration (QVAC Track)
-Multiple specialized AI agents (Coach, Analyst, Commentator, Scout) that collaborate to provide comprehensive insights. Tool calling for knowledge queries and predictions. Parallel task execution with result synthesis.
+**Wallet demo:** the wallet defaults to **Sepolia testnet** so you can fund it from any faucet (e.g. sepolia-faucet.pk910.de) and watch real transactions land on sepolia.etherscan.io. Mainnet chains (Ethereum/Polygon/Arbitrum/Optimism with real USDt) are in the chain switcher.
 
-### 🔒 Privacy First
-All AI inference runs on-device. No cloud. No API keys. No data leaves your phone. Works offline.
+**Web preview (UI only):** `npx expo start --web` swaps QVAC/WDK for browser mocks (see `mocks/` + `metro.config.js`) so you can browse the interface. All real inference and signing is native-only.
 
-## Tech Stack
+## The stack, used for real
 
-| Component | Technology |
-|-----------|------------|
-| Mobile Framework | React Native + Expo |
-| On-Device AI | QVAC SDK (`@qvac/sdk`) |
-| Wallet | WDK (`@tetherto/wdk`) |
-| AI Models | Llama 3.2 1B (Q4_0), GTE Large (embeddings), Piper TTS |
-| Navigation | Expo Router |
-| State Management | Zustand |
-| Football Data | football-data.org API (free tier) |
+### QVAC (Local AI)
+
+Everything runs through `@qvac/sdk` on the user's device:
+
+- **LLM** — `loadModel({ modelSrc: LLAMA_3_2_1B_INST_Q4_0 })`, streamed via `completion` events ([lib/ai/models.ts](lib/ai/models.ts))
+- **Vision** — SmolVLM2 500M + projection model; camera frames go in as `attachments` ([components/analysis/CameraAnalysis.tsx](components/analysis/CameraAnalysis.tsx))
+- **Embeddings/RAG** — EmbeddingGemma 300M via `embed()`, batched over a football knowledge base ([lib/ai/rag.ts](lib/ai/rag.ts))
+- **Native tool calling** — agents call `query_knowledge`, `predict_match`, `get_team_stats`; the SDK constrains generation and we invoke real handlers ([lib/ai/orchestrator.ts](lib/ai/orchestrator.ts))
+- **Structured output** — the orchestrator's plan is generated under a `json_schema` grammar, so it always parses
+- **TTS** — Supertonic 3 multilingual (30+ languages), WAV assembled on-device and played with expo-audio
+
+### WDK (Wallets)
+
+- **Self-custodial** — `new WDK(seed).registerWallet(chain, WalletManagerEvm, { provider })`; seed lives in SecureStore, keys never leave the device ([lib/wallet/wdk.ts](lib/wallet/wdk.ts))
+- **Real transfers** — `account.transfer({ token, recipient, amount })` for USDt on mainnet chains; native transfers on Sepolia
+- **Agent wallet with role separation** — the agent has its own seed/account, distinct from the user's ([lib/wallet/agent.ts](lib/wallet/agent.ts))
+- **Policy engine** — the agent registers DENY rules (`per-tx cap`, `daily budget`) via `wdk.registerPolicy()`. Violations throw `PolicyViolationError` *before signing* — the limits are enforced inside WDK, not by app code the agent could bypass. `account.simulate.*` powers a dry-run preview in the UI.
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    GoalMind App                          │
-├─────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────────┐  ┌────────────┐  │
-│  │   Camera    │  │   UI Layer      │  │  Settings  │  │
-│  │   Input     │  │   (Expo/RN)     │  │  & Config  │  │
-│  └──────┬──────┘  └────────┬────────┘  └─────┬──────┘  │
-│         │                  │                   │         │
-│  ┌──────▼──────────────────▼───────────────────▼──────┐ │
-│  │              QVAC SDK (Local AI)                    │ │
-│  │  ┌─────────┐ ┌────────┐ ┌─────┐ ┌──────────────┐  │ │
-│  │  │ Vision  │ │  LLM   │ │ TTS │ │  Embeddings  │  │ │
-│  │  │ Model   │ │ Model  │ │Model│ │    Model     │  │ │
-│  │  └─────────┘ └────────┘ └─────┘ └──────────────┘  │ │
-│  └────────────────────────────────────────────────────┘ │
-│                                                          │
-│  ┌────────────────────────────────────────────────────┐ │
-│  │           Multi-Agent Orchestration                │ │
-│  │  ┌────────┐ ┌────────┐ ┌──────────┐ ┌─────────┐  │ │
-│  │  │ Coach  │ │Analyst │ │Commentator│ │  Scout  │  │ │
-│  │  │ Agent  │ │ Agent  │ │  Agent   │ │  Agent  │  │ │
-│  │  └────────┘ └────────┘ └──────────┘ └─────────┘  │ │
-│  │              ┌──────────────┐                      │ │
-│  │              │ Orchestrator │                      │ │
-│  │              └──────────────┘                      │ │
-│  └────────────────────────────────────────────────────┘ │
-│                                                          │
-│  ┌────────────────────────────────────────────────────┐ │
-│  │              WDK (Self-Custodial)                   │ │
-│  │  ┌─────────┐ ┌────────────┐ ┌───────────────────┐ │ │
-│  │  │ Wallet  │ │   Agent    │ │  Staking & Pools  │ │ │
-│  │  │ Manager │ │   Wallet   │ │  (Escrow)         │ │ │
-│  │  └─────────┘ └────────────┘ └───────────────────┘ │ │
-│  └────────────────────────────────────────────────────┘ │
-│                                                          │
-│  ┌────────────────────────────────────────────────────┐ │
-│  │              Prediction Engine                      │ │
-│  │  ┌──────┐ ┌────────┐ ┌───────┐ ┌───────────────┐ │ │
-│  │  │ Elo  │ │Poisson │ │ Form  │ │  RAG Query    │ │ │
-│  │  │Rating│ │  Dist  │ │Analysis│ │  (Embeddings) │ │ │
-│  │  └──────┘ └────────┘ └───────┘ └───────────────┘ │ │
-│  └────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────── GoalMind (Expo / React Native) ───────────────────────┐
+│                                                                                │
+│  Screens: Home · Match Detail · Predict · Wallet · Settings                   │
+│      │                                                                         │
+│  ┌───▼──────────────── lib/ai (QVAC SDK) ─────────────────┐                   │
+│  │ models.ts      LLM · vision · embeddings · TTS          │                   │
+│  │ rag.ts         knowledge base + embed() retrieval       │                   │
+│  │ orchestrator.ts coach/analyst/commentator/scout agents  │                   │
+│  │                 + native tool calling + json_schema      │                   │
+│  └──────────────────────────────────────────────────────────┘                  │
+│  ┌──────────────────── lib/wallet (WDK) ───────────────────┐                   │
+│  │ wdk.ts    registerWallet · getAccount · transfer         │                   │
+│  │ agent.ts  agent seed + registerPolicy spending limits    │                   │
+│  │ staking/pools  local-ledger demo flows                   │                   │
+│  └──────────────────────────────────────────────────────────┘                  │
+│  lib/predictions/engine.ts   Elo + Poisson + form (pure math)                  │
+└────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Quick Start
+## Models
 
-```bash
-# Install dependencies
-npm install
+| Role | Model | Size |
+|------|-------|------|
+| LLM | Llama 3.2 1B Instruct Q4_0 | ~800 MB |
+| Vision | SmolVLM2 500M multimodal Q8_0 (+ projector) | ~600 MB |
+| Embeddings | EmbeddingGemma 300M Q8_0 | ~320 MB |
+| TTS | Supertonic 3 multilingual Q4_0 | ~300 MB |
 
-# Start development server
-npx expo start
+All pulled from the QVAC model registry on first use, cached on device.
 
-# Run on iOS simulator
-npx expo run:ios
-
-# Run on Android emulator
-npx expo run:android
-```
-
-## Environment Setup
-
-1. Copy `.env.example` to `.env`
-2. (Optional) Get a free football API key at https://www.football-data.org/client/register
-3. The app works without an API key using sample data
-
-## Project Structure
+## Project structure
 
 ```
 goalmind/
-├── app/                    # Expo Router pages
-│   ├── (tabs)/            # Tab navigation
-│   │   ├── index.tsx      # Home / Live Analysis
-│   │   ├── predict.tsx    # Predictions
-│   │   ├── wallet.tsx     # Fan Wallet
-│   │   └── settings.tsx   # Settings
-│   ├── _layout.tsx        # Root layout
-│   ├── onboarding.tsx     # First-time experience
-│   └── match/[id].tsx     # Match detail view
-├── components/            # Reusable components
-│   ├── ui/               # Base UI components
-│   ├── analysis/         # Match analysis components
-│   ├── wallet/           # Wallet components
-│   ├── prediction/       # Prediction components
-│   └── ErrorBoundary.tsx # Error handling
-├── lib/                   # Core logic
-│   ├── ai/               # QVAC integration
-│   │   ├── models.ts     # Model lifecycle
-│   │   ├── rag.ts        # RAG knowledge base
-│   │   └── orchestrator.ts # Multi-agent orchestration
-│   ├── api/              # Football data API
-│   ├── wallet/           # WDK integration
-│   │   ├── wdk.ts        # Wallet operations
-│   │   ├── agent.ts      # Agent wallet
-│   │   ├── staking.ts    # Prediction staking
-│   │   └── pools.ts      # Group tipping pools
-│   ├── predictions/      # Prediction engine
-│   ├── data/             # Sample football data
-│   └── config.ts         # App configuration
-├── hooks/                 # Custom React hooks
-│   ├── useAI.ts          # AI model lifecycle
-│   ├── useWallet.ts      # Wallet operations
-│   └── useFootballData.ts # Football data fetching
-├── stores/               # Zustand state management
-├── types/                # TypeScript types
-└── docs/                 # Documentation
+├── app/                  # Expo Router screens
+│   ├── (tabs)/           # Home, Predict, Wallet, Settings
+│   └── match/[id].tsx    # Match detail: streaming AI analysis
+├── components/analysis/  # CameraAnalysis (vision), LiveCommentary (LLM+TTS)
+├── lib/
+│   ├── ai/               # QVAC: models, RAG, multi-agent orchestration
+│   ├── wallet/           # WDK: wallet, agent + policy engine, staking, pools
+│   ├── predictions/      # Statistical engine (Elo/Poisson/form)
+│   └── data/             # Sample tournament data
+├── hooks/                # useAI, useWallet, useFootballData
+├── mocks/                # Web-preview stubs for native-only SDKs
+└── docs/                 # Architecture, demo script, judge briefing
 ```
 
-## Tracks
+## Environment
 
-This project enters **two tracks**:
+Works out of the box with sample tournament data. Optional: set `EXPO_PUBLIC_FOOTBALL_API_KEY` (free at football-data.org) for live fixtures.
 
-### QVAC Track (Local AI)
-- ✅ On-device NLP, TTS, and vision using QVAC SDK
-- ✅ RAG (Retrieval-Augmented Generation) over football knowledge base
-- ✅ Multi-agent orchestration with tool calling
-- ✅ Privacy-first: no cloud, no API keys, no data leaves device
-- ✅ Works offline in stadiums
+## Disclosure
 
-### WDK Track (Wallets)
-- ✅ Self-custodial wallet with seed phrase backup
-- ✅ Multi-chain support (Ethereum, Polygon, Arbitrum, Optimism)
-- ✅ Agent Wallet: AI agent that autonomously manages USDt
-- ✅ Prediction Staking: escrow-based stakes with dynamic odds
-- ✅ Group Tipping Pools: fans pool tips with smart distribution
-- ✅ Programmable payments and event-triggered transfers
-
-## Judging Criteria
-
-| Criterion | How GoalMind Delivers |
-|-----------|----------------------|
-| Technical Ambition | Multi-agent orchestration + RAG + on-device AI + blockchain wallet |
-| User Experience | Pull-to-refresh matches → tap → get instant analysis. Tap to tip. |
-| Real-World Utility | 4B+ football fans. Works offline in stadiums. |
-| Creativity | First on-device AI football companion with agent wallet and RAG |
-| Tether Platform | Deep QVAC + WDK integration across all features |
-
-## API Integration
-
-### Football Data
-- Uses football-data.org free API (10 requests/min)
-- Caches data locally with 1-hour TTL
-- Falls back to sample data when API is unavailable
-
-### QVAC SDK
-- LLM: Llama 3.2 1B (Q4_0 quantized, ~800MB)
-- Embeddings: GTE Large (FP16, ~400MB)
-- TTS: Piper Norman EN-US Medium (~200MB)
-
-### WDK Wallet
-- Self-custodial: keys generated and stored locally
-- Multi-chain: Ethereum, Polygon, Arbitrum, Optimism
-- Seed phrase backup via SecureStore
+- Third-party: football-data.org (optional match data), public JSON-RPC endpoints (balance reads / broadcasting), Expo.
+- Staking/pools settle in a local ledger for the demo; on-chain escrow is the next milestone.
+- Prior work: none — built during the event.
 
 ## License
 

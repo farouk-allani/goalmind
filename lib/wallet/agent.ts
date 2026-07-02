@@ -1,19 +1,24 @@
 // GoalMind — Agent Wallet
-// An AI agent that autonomously holds, sends, and manages USDt.
-// Uses WDK for wallet creation and signing.
-// The agent makes decisions based on match analysis and predictions.
+// An AI agent with its own self-custodial WDK wallet, separate from the
+// user's wallet (role separation). It decides on tips/stakes from match
+// predictions, but every write operation is gated by WDK's transaction
+// policy engine: spending limits are enforced *inside WDK* before anything
+// is signed — not by app code the agent could bypass.
 
-import WDK from '@tetherto/wdk';
+import WDK, { PolicyViolationError, type PolicyContext } from '@tetherto/wdk';
 import * as SecureStore from 'expo-secure-store';
 import {
-  initializeWallet,
+  createWdk,
+  createTip,
   getBalance,
   getUSDTBalance,
-  createTip,
-  storeSeedPhrase,
-  getStoredSeedPhrase,
+  getWdkAccount,
+  toBaseUnits,
+  CHAINS,
+  DEFAULT_CHAIN,
   type ChainId,
   type WalletInstance,
+  type WdkAccount,
 } from './wdk';
 
 // ---- Types ----
@@ -85,6 +90,7 @@ export class GoalMindAgent {
   private wallet: WalletInstance | null = null;
   private state: AgentState;
   private wdk: WDK | null = null;
+  private account: WdkAccount | null = null;
 
   constructor() {
     this.state = {
@@ -92,7 +98,7 @@ export class GoalMindAgent {
       address: null,
       balance: '0',
       usdtBalance: '0',
-      chain: 'ethereum',
+      chain: DEFAULT_CHAIN,
       config: DEFAULT_CONFIG,
       actions: [],
       dailySpent: 0,
@@ -103,29 +109,90 @@ export class GoalMindAgent {
   // ---- Initialization ----
 
   async initialize(seedPhrase?: string): Promise<void> {
-    // Try to load existing agent seed
-    let seed = seedPhrase;
-    if (!seed) {
-      seed = await this.loadAgentSeed();
-    }
+    // The agent has its own seed — its keys are never the user's keys.
+    let seed = seedPhrase ?? (await this.loadAgentSeed()) ?? undefined;
 
     if (!seed) {
-      // Generate new agent wallet
       seed = WDK.getRandomSeedPhrase();
       await this.saveAgentSeed(seed);
     }
 
-    this.wallet = await initializeWallet(seed, this.state.chain);
-    this.wdk = this.wallet.wdk;
-
-    this.state.initialized = true;
-    this.state.address = this.wallet.address;
-
-    // Load saved state
+    // Load config/state first so policy rules see the user's configured limits.
     await this.loadState();
 
-    // Fetch balances
+    // WDK transaction policy engine: DENY rules run before signing.
+    // Conditions close over live agent state, so changing the config or
+    // spending during the day immediately tightens what the agent can do.
+    const wdk = createWdk(seed).registerPolicy({
+      id: 'goalmind-agent-limits',
+      name: 'GoalMind agent spending limits',
+      scope: 'project',
+      rules: [
+        {
+          name: 'per-tx-usdt-cap',
+          operation: 'transfer',
+          action: 'DENY',
+          conditions: [
+            (ctx: PolicyContext) => {
+              const { amount } = ctx.params as { amount: number | bigint };
+              return BigInt(amount) > toBaseUnits(String(this.state.config.spendingLimit), 6);
+            },
+          ],
+        },
+        {
+          name: 'per-tx-native-cap',
+          operation: 'sendTransaction',
+          action: 'DENY',
+          conditions: [
+            (ctx: PolicyContext) => {
+              const { value } = ctx.params as { value?: number | bigint };
+              return BigInt(value ?? 0) > toBaseUnits(String(this.state.config.spendingLimit), 18);
+            },
+          ],
+        },
+        {
+          name: 'daily-budget-exhausted',
+          operation: '*',
+          action: 'DENY',
+          conditions: [() => this.state.dailySpent >= this.state.config.maxDailySpend],
+        },
+      ],
+    });
+
+    const account = await getWdkAccount(wdk, this.state.chain);
+    const address = await account.getAddress();
+
+    this.wdk = wdk;
+    this.account = account;
+    this.wallet = { wdk, account, address, chain: this.state.chain, initialized: true };
+
+    this.state.initialized = true;
+    this.state.address = address;
+
     await this.refreshBalances();
+  }
+
+  /**
+   * Dry-run a tip through the WDK policy engine without signing or
+   * broadcasting anything. Returns the engine's decision and reasoning —
+   * ideal for showing the user what the agent is (not) allowed to do.
+   */
+  async simulateTip(
+    toAddress: string,
+    amount: string
+  ): Promise<{ decision: 'ALLOW' | 'DENY'; reason?: string }> {
+    if (!this.account) throw new Error('Agent not initialized');
+
+    const config = CHAINS[this.state.chain];
+
+    if (config.usdtAddress) {
+      return this.account.simulate.transfer({
+        token: config.usdtAddress,
+        recipient: toAddress,
+        amount: toBaseUnits(amount, 6),
+      });
+    }
+    return this.account.simulate.sendTransaction({ to: toAddress, value: toBaseUnits(amount, 18) });
   }
 
   // ---- Decision Making ----
@@ -298,11 +365,21 @@ export class GoalMindAgent {
         action.txHash = result.txHash;
         action.status = 'executed';
         this.state.dailySpent += parseFloat(amount);
+      } else if (result.rejectedByPolicy) {
+        // WDK's policy engine refused to sign — the agent hit its limits.
+        action.status = 'rejected';
+        action.reason = `Blocked by WDK policy: ${result.policyReason ?? result.error}`;
+      } else {
+        action.status = 'failed';
+        action.reason = result.error ?? action.reason;
+      }
+    } catch (error) {
+      if (error instanceof PolicyViolationError) {
+        action.status = 'rejected';
+        action.reason = `Blocked by WDK policy: ${error.message}`;
       } else {
         action.status = 'failed';
       }
-    } catch (error) {
-      action.status = 'failed';
     }
 
     this.state.actions.unshift(action);
@@ -408,12 +485,13 @@ export class GoalMindAgent {
 
     this.wallet = null;
     this.wdk = null;
+    this.account = null;
     this.state = {
       initialized: false,
       address: null,
       balance: '0',
       usdtBalance: '0',
-      chain: 'ethereum',
+      chain: DEFAULT_CHAIN,
       config: DEFAULT_CONFIG,
       actions: [],
       dailySpent: 0,

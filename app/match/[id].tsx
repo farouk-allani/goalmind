@@ -45,6 +45,9 @@ export default function MatchDetailScreen() {
       ? selectedMatch
       : SAMPLE_MATCHES.find((m) => m.id === id);
 
+  // Live-API fixtures come without season history — their stats are zeros.
+  const hasStats = !!match && (match.homeTeam.stats.played > 0 || match.awayTeam.stats.played > 0);
+
   const runAnalysis = useCallback(async () => {
     if (!match || analysisRunning.current) return;
     analysisRunning.current = true;
@@ -121,17 +124,12 @@ Give a tactical analysis of this matchup.`;
 
   return (
     <View style={styles.container}>
-      {/* Tournament Badge with real trophy asset */}
-      <View style={styles.tournamentBadge}>
-        <Image 
-          source={require('@/assets/brand/trophy-cup.jpg')} 
-          style={styles.trophyImage} 
-          resizeMode="cover" 
-        />
-        <View style={styles.tournamentTextWrap}>
-          <Text style={styles.tournamentText}>TETHER DEVELOPERS CUP 2026</Text>
-          <Text style={styles.tournamentSub}>Quarter Final • Global Knockout</Text>
-        </View>
+      {/* Competition label */}
+      <View style={styles.competitionRow}>
+        <Ionicons name="trophy-outline" size={13} color={COLORS.textMuted} />
+        <Text style={styles.competitionLabel} numberOfLines={1}>
+          {match.competition ?? 'Friendly'}
+        </Text>
       </View>
 
       {/* Match Header */}
@@ -155,47 +153,6 @@ Give a tactical analysis of this matchup.`;
           <Text style={styles.teamFull}>{match.awayTeam.name}</Text>
           <Text style={styles.teamForm}>{match.awayTeam.recentForm.join(' ')}</Text>
         </View>
-      </View>
-
-      {/* Premium Quick Actions — Judge Demo Gold */}
-      <View style={styles.quickActionsBar}>
-        <Pressable 
-          style={styles.quickActionBtn} 
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            router.push('/predict');
-          }}>
-          <Ionicons name="trending-up" size={18} color={COLORS.text} />
-          <Text style={styles.quickActionLabel}>Stake</Text>
-        </Pressable>
-        <Pressable 
-          style={styles.quickActionBtn} 
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            router.push('/wallet');
-          }}>
-          <Ionicons name="cash" size={18} color={COLORS.gold} />
-          <Text style={styles.quickActionLabel}>Tip Pool</Text>
-        </Pressable>
-        <Pressable 
-          style={styles.quickActionBtn} 
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            setActiveTab('analysis');
-            if (!analysis) runAnalysis();
-          }}>
-          <Ionicons name="flash" size={18} color={COLORS.primary} />
-          <Text style={styles.quickActionLabel}>AI Coach</Text>
-        </Pressable>
-        <Pressable 
-          style={styles.quickActionBtn} 
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            setActiveTab('camera');
-          }}>
-          <Ionicons name="camera" size={18} color={COLORS.secondary} />
-          <Text style={styles.quickActionLabel}>Camera</Text>
-        </Pressable>
       </View>
 
       {/* Tab Selector */}
@@ -232,31 +189,41 @@ Give a tactical analysis of this matchup.`;
               </View>
             ) : analysis ? (
               <>
-                <PossessionBar
-                  home={match.homeTeam.stats.avgPossession}
-                  away={match.awayTeam.stats.avgPossession}
-                  homeTeam={match.homeTeam.shortName}
-                  awayTeam={match.awayTeam.shortName}
-                />
-                <MomentumGauge
-                  value={match.homeTeam.stats.avgPossession - match.awayTeam.stats.avgPossession}
-                  homeTeam={match.homeTeam.shortName}
-                  awayTeam={match.awayTeam.shortName}
-                />
-                <StatsComparison
-                  homeTeam={match.homeTeam.shortName}
-                  awayTeam={match.awayTeam.shortName}
-                  stats={[
-                    { label: 'Played', home: match.homeTeam.stats.played, away: match.awayTeam.stats.played },
-                    { label: 'Wins', home: match.homeTeam.stats.wins, away: match.awayTeam.stats.wins },
-                    { label: 'Goals', home: match.homeTeam.stats.goalsFor, away: match.awayTeam.stats.goalsFor },
-                    { label: 'Conceded', home: match.homeTeam.stats.goalsAgainst, away: match.awayTeam.stats.goalsAgainst, higherIsBetter: false },
-                    { label: 'Pass Acc.', home: match.homeTeam.stats.passAccuracy, away: match.awayTeam.stats.passAccuracy },
-                    { label: 'Shots/G', home: match.homeTeam.stats.shotsPerGame, away: match.awayTeam.stats.shotsPerGame },
-                  ]}
-                />
+                {/* Season stats widgets only when we actually have stats
+                    (live-API fixtures come without a season history). */}
+                {hasStats && (
+                  <>
+                    <PossessionBar
+                      home={match.homeTeam.stats.avgPossession}
+                      away={match.awayTeam.stats.avgPossession}
+                      homeTeam={match.homeTeam.shortName}
+                      awayTeam={match.awayTeam.shortName}
+                    />
+                    <MomentumGauge
+                      value={match.homeTeam.stats.avgPossession - match.awayTeam.stats.avgPossession}
+                      homeTeam={match.homeTeam.shortName}
+                      awayTeam={match.awayTeam.shortName}
+                    />
+                    <StatsComparison
+                      homeTeam={match.homeTeam.shortName}
+                      awayTeam={match.awayTeam.shortName}
+                      stats={[
+                        { label: 'Played', home: match.homeTeam.stats.played, away: match.awayTeam.stats.played },
+                        { label: 'Wins', home: match.homeTeam.stats.wins, away: match.awayTeam.stats.wins },
+                        { label: 'Goals', home: match.homeTeam.stats.goalsFor, away: match.awayTeam.stats.goalsFor },
+                        { label: 'Conceded', home: match.homeTeam.stats.goalsAgainst, away: match.awayTeam.stats.goalsAgainst, higherIsBetter: false },
+                        { label: 'Pass Acc.', home: match.homeTeam.stats.passAccuracy, away: match.awayTeam.stats.passAccuracy },
+                        { label: 'Shots/G', home: match.homeTeam.stats.shotsPerGame, away: match.awayTeam.stats.shotsPerGame },
+                      ]}
+                    />
+                  </>
+                )}
                 <Card>
-                  <Text style={styles.analysisText}>{analysis}</Text>
+                  <View style={styles.analysisHeader}>
+                    <Ionicons name="hardware-chip-outline" size={14} color={COLORS.primary} />
+                    <Text style={styles.analysisHeaderText}>Tactical read · generated on-device</Text>
+                  </View>
+                  <Text style={styles.analysisText}>{analysis.replace(/\*\*/g, '')}</Text>
                 </Card>
               </>
             ) : (
@@ -267,7 +234,7 @@ Give a tactical analysis of this matchup.`;
                   Get tactical insights powered by on-device AI
                 </Text>
                 <Button
-                  title="Analyze Match with AI (QVAC)"
+                  title="Run Tactical Analysis"
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     runAnalysis();
@@ -336,7 +303,7 @@ Give a tactical analysis of this matchup.`;
 
                   {/* Stake CTA — Direct path to WDK utility */}
                   <Button
-                    title="Stake on this Prediction (WDK)"
+                    title="Stake on this Prediction"
                     onPress={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                       router.push('/wallet');
@@ -493,55 +460,31 @@ const styles = StyleSheet.create({
   closeCamera: { position: 'absolute', top: 60, left: 20, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
   errorText: { fontSize: 16, color: COLORS.error, textAlign: 'center', marginTop: 16, marginBottom: 24 },
 
-  // Tournament + Quick Actions (new premium additions)
-  tournamentBadge: {
+  competitionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#111',
-    borderRadius: 16,
+    gap: 6,
     marginTop: 8,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: COLORS.gold + '25',
-    height: 64,
+    marginBottom: 4,
   },
-  trophyImage: {
-    width: 64,
-    height: 64,
-  },
-  tournamentTextWrap: {
-    flex: 1,
-    paddingHorizontal: 14,
-  },
-  tournamentText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: COLORS.gold,
-    letterSpacing: 1.2,
-  },
-  tournamentSub: {
-    fontSize: 10,
-    color: COLORS.textDim,
-    marginTop: 2,
-  },
-  quickActionsBar: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12,
-  },
-  quickActionBtn: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    gap: 4,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  quickActionLabel: {
+  competitionLabel: {
     fontSize: 11,
-    fontWeight: '700',
     color: COLORS.textMuted,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  analysisHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  analysisHeaderText: {
+    fontSize: 11,
+    color: COLORS.primary,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
 });

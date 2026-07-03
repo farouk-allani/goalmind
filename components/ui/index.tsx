@@ -1,10 +1,11 @@
 // GoalMind — UI Components
-// Reusable, clean, no-fluff components.
+// Goalix design system: charcoal canvas, lime accent, rounded-full pill buttons.
 
 import { View, Text, Pressable, ActivityIndicator, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS } from '@/types';
+import { COLORS, GRADIENTS, TYPE } from '@/types';
 
 // Button variants
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
@@ -19,6 +20,8 @@ interface ButtonProps {
   loading?: boolean;
   disabled?: boolean;
   fullWidth?: boolean;
+  /** Trailing circular chevron badge (primary/secondary only). Defaults on for md/lg. */
+  arrowBadge?: boolean;
   style?: ViewStyle;
 }
 
@@ -31,38 +34,57 @@ export function Button({
   loading = false,
   disabled = false,
   fullWidth = false,
+  arrowBadge,
   style,
 }: ButtonProps) {
-  const variantStyles: Record<ButtonVariant, { bg: string; text: string; border?: string; useGradient?: boolean }> = {
-    primary: { bg: COLORS.primary, text: COLORS.background, useGradient: true },
-    secondary: { bg: COLORS.secondary, text: COLORS.background },
-    outline: { bg: 'transparent', text: COLORS.text, border: COLORS.border },
-    ghost: { bg: 'transparent', text: COLORS.textMuted },
+  const sizeStyles: Record<ButtonSize, { py: number; px: number; fontSize: number; iconSize: number; badge: number }> = {
+    sm: { py: 8, px: 14, fontSize: 12, iconSize: 15, badge: 22 },
+    md: { py: 13, px: 22, fontSize: 13, iconSize: 17, badge: 28 },
+    lg: { py: 16, px: 28, fontSize: 14, iconSize: 19, badge: 32 },
   };
-
-  const sizeStyles: Record<ButtonSize, { py: number; px: number; fontSize: number; iconSize: number }> = {
-    sm: { py: 8, px: 12, fontSize: 13, iconSize: 16 },
-    md: { py: 12, px: 20, fontSize: 15, iconSize: 18 },
-    lg: { py: 16, px: 28, fontSize: 17, iconSize: 20 },
-  };
-
-  const v = variantStyles[variant];
   const s = sizeStyles[size];
+  const showArrowBadge = (arrowBadge ?? size !== 'sm') && (variant === 'primary' || variant === 'secondary');
 
-  const isGradientPrimary = variant === 'primary';
+  const textColor =
+    variant === 'primary' ? COLORS.background :
+    variant === 'secondary' ? '#FFFFFF' :
+    variant === 'outline' ? COLORS.text :
+    COLORS.primary; // ghost/tertiary — lime uppercase text
 
-  const buttonContent = loading ? (
-    <ActivityIndicator color={v.text} size="small" />
+  const buttonInner = loading ? (
+    <ActivityIndicator color={textColor} size="small" />
   ) : (
     <>
-      {icon && <Ionicons name={icon} size={s.iconSize} color={v.text} />}
-      <Text style={[styles.buttonText, { color: v.text, fontSize: s.fontSize }]}>
+      {icon && <Ionicons name={icon} size={s.iconSize} color={textColor} />}
+      <Text style={[styles.buttonText, { color: textColor, fontSize: s.fontSize }]} numberOfLines={1}>
         {title}
       </Text>
+      {variant === 'ghost' && (
+        <Ionicons name="chevron-forward" size={14} color={COLORS.primary} />
+      )}
+      {showArrowBadge && (
+        <View
+          style={[
+            styles.arrowBadge,
+            {
+              width: s.badge,
+              height: s.badge,
+              borderRadius: s.badge / 2,
+              backgroundColor: variant === 'primary' ? '#FFFFFF' : 'rgba(255,255,255,0.16)',
+            },
+          ]}
+        >
+          <Ionicons
+            name="chevron-forward"
+            size={s.badge * 0.55}
+            color={variant === 'primary' ? COLORS.background : '#FFFFFF'}
+          />
+        </View>
+      )}
     </>
   );
 
-  if (isGradientPrimary) {
+  if (variant === 'primary') {
     return (
       <Pressable
         onPress={onPress}
@@ -71,7 +93,8 @@ export function Button({
           styles.button,
           {
             paddingVertical: s.py,
-            paddingHorizontal: s.px,
+            paddingHorizontal: showArrowBadge ? s.py / 2 : s.px,
+            paddingLeft: s.px,
             opacity: pressed ? 0.88 : disabled ? 0.5 : 1,
           },
           fullWidth && { width: '100%' },
@@ -82,9 +105,9 @@ export function Button({
           colors={GRADIENTS.primary}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={[styles.gradientButton, { borderRadius: 12 }]}
+          style={styles.gradientButton}
         >
-          {buttonContent}
+          {buttonInner}
         </LinearGradient>
       </Pressable>
     );
@@ -97,18 +120,56 @@ export function Button({
       style={({ pressed }) => [
         styles.button,
         {
-          backgroundColor: v.bg,
+          backgroundColor: variant === 'secondary' ? COLORS.surfaceElevated : 'transparent',
           paddingVertical: s.py,
-          paddingHorizontal: s.px,
+          paddingHorizontal: showArrowBadge ? s.py / 2 : s.px,
+          paddingLeft: s.px,
           opacity: pressed ? 0.8 : disabled ? 0.5 : 1,
-          borderWidth: variant === 'outline' ? 1 : 0,
-          borderColor: v.border,
+          borderWidth: variant === 'outline' ? 1 : variant === 'secondary' ? 1 : 0,
+          borderColor: variant === 'outline' ? COLORS.text + '30' : 'rgba(255,255,255,0.1)',
         },
         fullWidth && { width: '100%' },
         style,
       ]}
     >
-      {buttonContent}
+      {buttonInner}
+    </Pressable>
+  );
+}
+
+// Pill — capsule filter/tab chip (sport selector, tab bars, language selectors, LIVE indicator).
+type PillVariant = 'active' | 'inactive' | 'live' | 'favourite' | 'add';
+
+interface PillProps {
+  label: string;
+  variant?: PillVariant;
+  onPress?: () => void;
+  style?: ViewStyle;
+}
+
+export function Pill({ label, variant = 'inactive', onPress, style }: PillProps) {
+  const isActive = variant === 'active' || variant === 'live' || variant === 'favourite';
+  const bg =
+    variant === 'add' ? COLORS.primary :
+    isActive ? '#FFFFFF' :
+    COLORS.surfaceElevated;
+  const textColor = variant === 'add' || isActive ? COLORS.background : COLORS.muted;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.pill,
+        { backgroundColor: bg, borderColor: isActive || variant === 'add' ? 'transparent' : COLORS.muted + '30' },
+        style,
+      ]}
+    >
+      {variant === 'live' && <View style={styles.liveDot} />}
+      {variant === 'favourite' && (
+        <Ionicons name="star" size={11} color={textColor} style={{ marginRight: 2 }} />
+      )}
+      <Text style={[styles.pillText, { color: textColor }]}>{label}</Text>
+      {variant === 'add' && <Ionicons name="add" size={13} color={textColor} style={{ marginLeft: 2 }} />}
     </Pressable>
   );
 }
@@ -117,7 +178,7 @@ export function Button({
 interface CardProps {
   children: React.ReactNode;
   style?: ViewStyle;
-  variant?: 'default' | 'elevated' | 'outlined';
+  variant?: 'default' | 'elevated' | 'outlined' | 'nested';
 }
 
 export function Card({ children, style, variant = 'default' }: CardProps) {
@@ -126,6 +187,7 @@ export function Card({ children, style, variant = 'default' }: CardProps) {
       styles.card,
       variant === 'elevated' && styles.cardElevated,
       variant === 'outlined' && styles.cardOutlined,
+      variant === 'nested' && styles.cardNested,
       style,
     ]}>
       {children}
@@ -137,22 +199,22 @@ export function Card({ children, style, variant = 'default' }: CardProps) {
 interface BadgeProps {
   label: string;
   color?: string;
-  variant?: 'filled' | 'outline';
+  variant?: 'filled' | 'outline' | 'solid';
 }
 
 export function Badge({ label, color = COLORS.primary, variant = 'filled' }: BadgeProps) {
   return (
     <View style={[
       styles.badge,
-      { backgroundColor: variant === 'filled' ? color + '20' : 'transparent' },
+      { backgroundColor: variant === 'filled' ? color + '20' : variant === 'solid' ? color : 'transparent' },
       variant === 'outline' && { borderWidth: 1, borderColor: color },
     ]}>
-      <Text style={[styles.badgeText, { color }]}>{label}</Text>
+      <Text style={[styles.badgeText, { color: variant === 'solid' ? COLORS.background : color }]}>{label}</Text>
     </View>
   );
 }
 
-// Progress Bar
+// Progress Bar — linear determinate, 5%-opacity track.
 interface ProgressBarProps {
   value: number; // 0-1
   color?: string;
@@ -179,6 +241,83 @@ export function ProgressBar({ value, color = COLORS.primary, height = 6, label, 
   );
 }
 
+// Stepped Progress — row of discrete pill segments (e.g. "4 of 6").
+interface SteppedProgressProps {
+  steps: number;
+  completed: number;
+  color?: string;
+}
+
+export function SteppedProgress({ steps, completed, color = COLORS.primary }: SteppedProgressProps) {
+  return (
+    <View style={styles.steppedRow}>
+      {Array.from({ length: steps }).map((_, i) => (
+        <View
+          key={i}
+          style={[
+            styles.steppedSegment,
+            { backgroundColor: i < completed ? color : 'rgba(255,255,255,0.08)' },
+          ]}
+        />
+      ))}
+    </View>
+  );
+}
+
+// Circular Progress Ring
+interface CircularProgressProps {
+  value: number; // 0-1
+  size?: number;
+  strokeWidth?: number;
+  color?: string;
+  trackColor?: string;
+  label?: string;
+}
+
+export function CircularProgress({
+  value,
+  size = 72,
+  strokeWidth = 6,
+  color = COLORS.primary,
+  trackColor = 'rgba(255,255,255,0.08)',
+  label,
+}: CircularProgressProps) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const clamped = Math.min(1, Math.max(0, value));
+  const offset = circumference * (1 - clamped);
+  const center = size / 2;
+
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={size} height={size}>
+        <Circle cx={center} cy={center} r={radius} stroke={trackColor} strokeWidth={strokeWidth} fill="none" />
+        <Circle
+          cx={center}
+          cy={center}
+          r={radius}
+          stroke={color}
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          rotation={-90}
+          origin={`${center}, ${center}`}
+        />
+      </Svg>
+      <View style={StyleSheet.absoluteFillObject}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: COLORS.text, fontSize: size * 0.24, fontWeight: '700' }}>
+            {Math.round(clamped * 100)}%
+          </Text>
+          {label && <Text style={{ color: COLORS.textDim, fontSize: 9, marginTop: 1 }}>{label}</Text>}
+        </View>
+      </View>
+    </View>
+  );
+}
+
 // Stat Display
 interface StatProps {
   label: string;
@@ -198,6 +337,28 @@ export function Stat({ label, value, change, icon }: StatProps) {
           {change >= 0 ? '+' : ''}{change.toFixed(1)}%
         </Text>
       )}
+    </View>
+  );
+}
+
+// Mini Stats Grid — 4-column tile matrix (real, caller-supplied values only).
+export interface StatTileData {
+  icon: keyof typeof Ionicons.glyphMap;
+  value: string | number;
+  label: string;
+  color?: string;
+}
+
+export function MiniStatsGrid({ items }: { items: StatTileData[] }) {
+  return (
+    <View style={styles.statsGrid}>
+      {items.map((item, i) => (
+        <View key={i} style={styles.statTile}>
+          <Ionicons name={item.icon} size={16} color={item.color ?? COLORS.primary} />
+          <Text style={styles.statTileValue}>{item.value}</Text>
+          <Text style={styles.statTileLabel}>{item.label}</Text>
+        </View>
+      ))}
     </View>
   );
 }
@@ -228,8 +389,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    borderRadius: 12,
+    gap: 10,
+    borderRadius: 999,
     overflow: 'hidden',
   },
   gradientButton: {
@@ -237,22 +398,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    borderRadius: 12,
+    gap: 10,
   },
   buttonText: {
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  arrowBadge: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 999,
+    borderWidth: 1,
+    gap: 4,
+  },
+  pillText: {
+    fontSize: 12,
     fontWeight: '600',
   },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.error,
+    marginRight: 4,
+  },
   card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 18,
+    // Slate surface — stands out against the charcoal page canvas.
+    backgroundColor: COLORS.surfaceElevated,
+    borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   cardElevated: {
     shadowColor: '#000',
@@ -264,6 +447,11 @@ const styles = StyleSheet.create({
   cardOutlined: {
     backgroundColor: 'transparent',
   },
+  cardNested: {
+    // Charcoal — for elements nested inside a (slate) Card, e.g. a CTA segment.
+    backgroundColor: COLORS.background,
+    borderColor: 'transparent',
+  },
   badge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -272,7 +460,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -294,12 +482,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   progressTrack: {
-    backgroundColor: COLORS.border,
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
+    borderRadius: 3,
+  },
+  steppedRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  steppedSegment: {
+    flex: 1,
+    height: 5,
     borderRadius: 3,
   },
   stat: {
@@ -320,6 +517,30 @@ const styles = StyleSheet.create({
   statChange: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  statTile: {
+    flexBasis: '47%',
+    flexGrow: 1,
+    backgroundColor: COLORS.surfaceElevated,
+    borderRadius: 16,
+    padding: 14,
+    gap: 6,
+  },
+  statTileValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  statTileLabel: {
+    fontSize: 11,
+    color: COLORS.textDim,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   emptyState: {
     alignItems: 'center',

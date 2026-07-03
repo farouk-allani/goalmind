@@ -3,7 +3,7 @@
 
 import { View, Text, ScrollView, Pressable, Alert, StyleSheet, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '@/types';
+import { COLORS, FONTS } from '@/types';
 import { useAIStore, useWalletStore } from '@/stores';
 import { useWallet } from '@/hooks/useWallet';
 import { config } from '@/lib/config';
@@ -164,7 +164,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background, paddingHorizontal: 20, paddingTop: 60 },
   header: { marginBottom: 12 },
-  title: { fontSize: 26, fontWeight: '800', color: COLORS.text, letterSpacing: -0.4 },
+  title: { fontFamily: FONTS.display, fontSize: 24, color: COLORS.text, letterSpacing: 0 },
   mockupContainer: {
     marginHorizontal: -20,
     marginBottom: 24,
@@ -193,19 +193,19 @@ const styles = StyleSheet.create({
   },
   section: { marginBottom: 24 },
   sectionTitle: { fontSize: 13, fontWeight: '600', color: COLORS.textDim, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 },
-  sectionCard: { backgroundColor: COLORS.surface, borderRadius: 14, borderWidth: 1, borderColor: COLORS.border, overflow: 'hidden' },
+  sectionCard: { backgroundColor: COLORS.surfaceElevated, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', overflow: 'hidden' },
   settingItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
   settingItemBorder: { borderBottomWidth: 1, borderBottomColor: COLORS.border },
   settingLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   settingLabel: { fontSize: 14, color: COLORS.text },
   settingValue: { fontSize: 13, color: COLORS.textMuted, maxWidth: '50%', textAlign: 'right' },
-  techStack: { backgroundColor: COLORS.surface, borderRadius: 14, padding: 16, gap: 14, borderWidth: 1, borderColor: COLORS.border },
+  techStack: { backgroundColor: COLORS.surfaceElevated, borderRadius: 20, padding: 16, gap: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
   techItem: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   techDot: { width: 10, height: 10, borderRadius: 5 },
   techName: { fontSize: 14, fontWeight: '600', color: COLORS.text },
   techDesc: { fontSize: 12, color: COLORS.textDim },
   featuresGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  featureItem: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 16, width: '47%', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: COLORS.border },
+  featureItem: { backgroundColor: COLORS.surfaceElevated, borderRadius: 16, padding: 16, width: '47%', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
   featureLabel: { fontSize: 13, fontWeight: '600', color: COLORS.text },
   featureDesc: { fontSize: 11, color: COLORS.textDim },
   dangerButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: COLORS.error + '10', paddingVertical: 14, borderRadius: 12, borderWidth: 1, borderColor: COLORS.error + '30' },

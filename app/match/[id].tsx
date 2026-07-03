@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS } from '@/types';
 import { SAMPLE_MATCHES, formatTeamStatsForAnalysis, type MatchData } from '@/lib/data/football';
+import { getTeamFlag } from '@/lib/utils/flags';
 import { useAIStore, useMatchStore } from '@/stores';
 import { predictMatch } from '@/lib/predictions/engine';
 import { generateTextStream, isModelLoaded } from '@/lib/ai/models';
@@ -135,7 +136,7 @@ Give a tactical analysis of this matchup.`;
       {/* Match Header */}
       <View style={styles.matchHeader}>
         <View style={styles.teamColumn}>
-          <Text style={styles.teamCode}>{match.homeTeam.shortName}</Text>
+          <Text style={styles.teamCode}>{getTeamFlag(match.homeTeam.name)} {match.homeTeam.shortName}</Text>
           <Text style={styles.teamFull}>{match.homeTeam.name}</Text>
           <Text style={styles.teamForm}>{match.homeTeam.recentForm.join(' ')}</Text>
         </View>
@@ -149,7 +150,7 @@ Give a tactical analysis of this matchup.`;
           </Text>
         </View>
         <View style={[styles.teamColumn, { alignItems: 'flex-end' }]}>
-          <Text style={styles.teamCode}>{match.awayTeam.shortName}</Text>
+          <Text style={styles.teamCode}>{match.awayTeam.shortName} {getTeamFlag(match.awayTeam.name)}</Text>
           <Text style={styles.teamFull}>{match.awayTeam.name}</Text>
           <Text style={styles.teamForm}>{match.awayTeam.recentForm.join(' ')}</Text>
         </View>
@@ -169,7 +170,7 @@ Give a tactical analysis of this matchup.`;
             <Ionicons
               name={tab === 'analysis' ? 'analytics' : tab === 'predict' ? 'trending-up' : tab === 'commentary' ? 'mic' : 'camera'}
               size={16}
-              color={activeTab === tab ? COLORS.primary : COLORS.textDim}
+              color={activeTab === tab ? COLORS.background : COLORS.muted}
             />
             <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -418,11 +419,11 @@ const styles = StyleSheet.create({
   vsLabel: { fontSize: 16, fontWeight: '700', color: COLORS.textDim, letterSpacing: 3 },
   matchTime: { fontSize: 12, color: COLORS.textMuted, marginTop: 4 },
   matchTimeSmall: { fontSize: 11, color: COLORS.textDim, marginTop: 2 },
-  tabs: { flexDirection: 'row', gap: 4, paddingVertical: 8 },
-  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 10, borderRadius: 8, backgroundColor: COLORS.surface },
-  tabActive: { backgroundColor: COLORS.primaryMuted },
-  tabText: { fontSize: 12, fontWeight: '600', color: COLORS.textDim },
-  tabTextActive: { color: COLORS.primary },
+  tabs: { flexDirection: 'row', gap: 4, padding: 4, marginVertical: 8, backgroundColor: COLORS.surfaceElevated, borderRadius: 999 },
+  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 9, borderRadius: 999, backgroundColor: 'transparent' },
+  tabActive: { backgroundColor: '#FFFFFF' },
+  tabText: { fontSize: 11, fontWeight: '600', color: COLORS.muted, textTransform: 'uppercase', letterSpacing: 0.3 },
+  tabTextActive: { color: COLORS.background },
   content: { flex: 1 },
   loadingContainer: { alignItems: 'center', paddingVertical: 40, gap: 12 },
   loadingText: { fontSize: 16, color: COLORS.text },

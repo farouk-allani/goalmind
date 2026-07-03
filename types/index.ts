@@ -151,34 +151,52 @@ export interface ThemeColors {
   text: string;
   textMuted: string;
   textDim: string;
+  muted: string;
   success: string;
   warning: string;
   error: string;
   border: string;
 }
 
+// Goalix Football Prediction Design System — exact brand tokens.
 export const COLORS: ThemeColors = {
-  background: '#0A0A0A',
-  surface: '#121212',
-  surfaceElevated: '#1A1A1A',
-  primary: '#10B981',     // Rich Emerald - football pitch + success
-  primaryMuted: '#065F46',
-  gold: '#C5A26F',        // Premium tournament gold
+  background: '#111317',  // Charcoal — base canvas
+  surface: '#17191C',
+  surfaceElevated: '#2A2E34', // Slate — secondary surfaces / nested cards
+  primary: '#C8FF2E',     // Lime — brand main highlight
+  primaryMuted: '#2B3316',
+  gold: '#C5A26F',        // Premium tournament gold (USDt / agent wallet accent)
   secondary: '#6366F1',
   accent: '#F59E0B',
-  text: '#F8F8F8',
-  textMuted: '#A3A3A3',
-  textDim: '#525252',
+  text: '#FFFFFF',        // Pure white — primary text / display values
+  textMuted: '#A7ACB3',
+  textDim: '#5B6167',
+  muted: '#E9EBEE',       // Muted gray — subtle borders, secondary text, outline badges
   success: '#22C55E',
   warning: '#EAB308',
   error: '#EF4444',
-  border: '#262626',
+  border: '#25282D',
 };
 
 // Extended theme tokens for premium UI
 export const GRADIENTS = {
-  primary: ['#10B981', '#059669'] as const,
+  primary: ['#DBFF5C', '#A6D400'] as const,
   gold: ['#C5A26F', '#A67C52'] as const,
-  dark: ['#0A0A0A', '#121212'] as const,
-  card: ['#121212', '#1A1A1A'] as const,
+  dark: ['#111317', '#17191C'] as const,
+  card: ['#17191C', '#2A2E34'] as const,
+};
+
+// Display typography (Orbitron) — headlines/logo only, loaded in app/_layout.tsx
+export const FONTS = {
+  display: 'Orbitron_800ExtraBold',
+  displaySemibold: 'Orbitron_700Bold',
+};
+
+// Goalix type scale — condensed, high-contrast hierarchy.
+export const TYPE = {
+  h1: { fontSize: 32, fontWeight: '700' as const, letterSpacing: -0.32 },
+  h2: { fontSize: 24, fontWeight: '600' as const, letterSpacing: -0.24 },
+  bodyLarge: { fontSize: 16, fontWeight: '400' as const },
+  bodyMedium: { fontSize: 14, fontWeight: '400' as const },
+  label: { fontSize: 11, fontWeight: '600' as const, letterSpacing: 0.5, textTransform: 'uppercase' as const },
 };

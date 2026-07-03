@@ -13,7 +13,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { COLORS } from '@/types';
+import { COLORS, FONTS } from '@/types';
 import { Button } from '@/components/ui';
 
 const { width } = Dimensions.get('window');
@@ -188,11 +188,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   title: {
-    fontSize: 30,
-    fontWeight: '800',
+    fontFamily: FONTS.display,
+    fontSize: 24,
     color: COLORS.text,
     textAlign: 'center',
-    letterSpacing: -0.8,
+    letterSpacing: 0,
+    lineHeight: 32,
     marginBottom: 12,
   },
   description: {

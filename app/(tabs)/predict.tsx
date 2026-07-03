@@ -13,11 +13,12 @@ import {
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS } from '@/types';
+import { COLORS, GRADIENTS, FONTS } from '@/types';
 import { SAMPLE_MATCHES } from '@/lib/data/football';
+import { getTeamFlag } from '@/lib/utils/flags';
 import { useAIStore } from '@/stores';
 import { predictMatch, type PredictionResult } from '@/lib/predictions/engine';
-import { Card, Button, Badge } from '@/components/ui';
+import { Card, Button, Badge, MiniStatsGrid, CircularProgress } from '@/components/ui';
 
 export default function PredictScreen() {
   const { modelsLoaded } = useAIStore();
@@ -42,6 +43,15 @@ export default function PredictScreen() {
   const toggleExpanded = useCallback((matchId: string) => {
     setExpandedId((prev) => (prev === matchId ? null : matchId));
   }, []);
+
+  // Real, on-device derived stats — no fabricated history.
+  const avgConfidence = predictions.length
+    ? predictions.reduce((sum, p) => sum + p.confidence, 0) / predictions.length
+    : 0;
+  const highConfidenceCount = predictions.filter((p) => p.confidence > 0.75).length;
+  const avgTotalXg = predictions.length
+    ? predictions.reduce((sum, p) => sum + p.xgHome + p.xgAway, 0) / predictions.length
+    : 0;
 
   return (
     <View style={styles.container}>
@@ -76,6 +86,21 @@ export default function PredictScreen() {
         </Text>
       </View>
 
+      {predictions.length > 0 && (
+        <Card style={styles.statsSection}>
+          <View style={styles.statsRing}>
+            <CircularProgress value={avgConfidence} size={84} label="Avg Confidence" />
+          </View>
+          <MiniStatsGrid
+            items={[
+              { icon: 'football', value: predictions.length, label: 'Matches' },
+              { icon: 'flash', value: highConfidenceCount, label: 'High Confidence', color: COLORS.success },
+              { icon: 'trending-up', value: avgTotalXg.toFixed(1), label: 'Avg Total xG', color: COLORS.gold },
+            ]}
+          />
+        </Card>
+      )}
+
       <ScrollView style={styles.predictionsList} showsVerticalScrollIndicator={false}>
         {predictions.map((pred) => {
           const isExpanded = expandedId === pred.matchId;
@@ -88,14 +113,14 @@ export default function PredictScreen() {
             >
               {/* Match Header */}
               <View style={styles.matchHeader}>
-                <Text style={styles.teamCode}>{pred.homeTeam}</Text>
+                <Text style={styles.teamCode}>{getTeamFlag(pred.homeTeam)} {pred.homeTeam}</Text>
                 <View style={styles.vsContainer}>
                   <Text style={styles.vsText}>VS</Text>
                   <Text style={styles.suggestedScore}>
                     {pred.suggestedScore.home} - {pred.suggestedScore.away}
                   </Text>
                 </View>
-                <Text style={styles.teamCode}>{pred.awayTeam}</Text>
+                <Text style={styles.teamCode}>{pred.awayTeam} {getTeamFlag(pred.awayTeam)}</Text>
               </View>
 
               {/* Win Probability */}
@@ -235,12 +260,14 @@ const styles = StyleSheet.create({
   heroOverlay: { ...StyleSheet.absoluteFillObject },
   heroText: { position: 'absolute', bottom: 16, left: 20, right: 20 },
   header: { marginBottom: 12 },
-  title: { fontSize: 26, fontWeight: '800', color: COLORS.text, letterSpacing: -0.6 },
+  title: { fontFamily: FONTS.display, fontSize: 24, color: COLORS.text, letterSpacing: 0 },
   subtitle: { fontSize: 13, color: 'rgba(163,163,163,0.9)', marginTop: 2 },
   algoInfo: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, marginBottom: 16, paddingHorizontal: 4 },
   algoText: { fontSize: 12, color: COLORS.textDim, flex: 1, lineHeight: 16 },
+  statsSection: { marginBottom: 16 },
+  statsRing: { alignItems: 'center', marginBottom: 16 },
   predictionsList: { flex: 1 },
-  predictionCard: { backgroundColor: COLORS.surface, borderRadius: 16, padding: 20, marginBottom: 12, borderWidth: 1, borderColor: COLORS.border },
+  predictionCard: { backgroundColor: COLORS.surfaceElevated, borderRadius: 24, padding: 20, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
   matchHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
   teamCode: { fontSize: 24, fontWeight: '800', color: COLORS.text, letterSpacing: -0.5 },
   vsContainer: { alignItems: 'center' },

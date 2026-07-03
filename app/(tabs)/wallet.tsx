@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, GRADIENTS } from '@/types';
+import { COLORS, GRADIENTS, FONTS } from '@/types';
 import { useWallet } from '@/hooks/useWallet';
 import { formatAddress, formatAmount, CHAINS, type ChainId } from '@/lib/wallet/wdk';
 import { Card, Button, Badge } from '@/components/ui';
@@ -171,6 +171,12 @@ export default function WalletScreen() {
               <Text style={styles.emptySubtitle}>
                 Create a self-custodial wallet to tip fans, earn predictions, and receive rewards.
               </Text>
+              {error && (
+                <View style={styles.errorBanner}>
+                  <Ionicons name="warning" size={16} color={COLORS.warning} />
+                  <Text style={styles.errorText}>{error}</Text>
+                </View>
+              )}
               <View style={styles.walletActions}>
                 <Button
                   title={initializing ? 'Creating...' : 'Create Wallet'}
@@ -241,6 +247,12 @@ export default function WalletScreen() {
                 icon="paper-plane"
                 fullWidth
               />
+              {error && (
+                <View style={styles.errorBanner}>
+                  <Ionicons name="warning" size={16} color={COLORS.warning} />
+                  <Text style={styles.errorText}>{error}</Text>
+                </View>
+              )}
             </View>
           </View>
         )}
@@ -379,8 +391,10 @@ const styles = StyleSheet.create({
   heroOverlay: { ...StyleSheet.absoluteFillObject },
   heroContent: { position: 'absolute', bottom: 14, left: 20 },
   header: { marginBottom: 24 },
-  title: { fontSize: 26, fontWeight: '800', color: COLORS.text, letterSpacing: -0.6 },
+  title: { fontFamily: FONTS.display, fontSize: 24, color: COLORS.text, letterSpacing: 0 },
   subtitle: { fontSize: 13, color: 'rgba(163,163,163,0.85)', marginTop: 2 },
+  errorBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: COLORS.warning + '15', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8, marginTop: 16, width: '100%' },
+  errorText: { fontSize: 12, color: COLORS.warning, flex: 1 },
   walletCard: { marginBottom: 16, padding: 24 },
   walletHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   walletIcon: { width: 48, height: 48, borderRadius: 14, backgroundColor: COLORS.primaryMuted, alignItems: 'center', justifyContent: 'center' },
@@ -388,7 +402,7 @@ const styles = StyleSheet.create({
   walletStatusText: { fontSize: 12, color: COLORS.success, fontWeight: '600' },
   statusDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.success },
   balanceLabel: { fontSize: 11, color: COLORS.textDim, marginBottom: 4, letterSpacing: 1 },
-  balanceValue: { fontSize: 32, fontWeight: '800', color: COLORS.text, letterSpacing: -1, marginBottom: 2 },
+  balanceValue: { fontFamily: FONTS.display, fontSize: 28, color: COLORS.text, letterSpacing: 0, marginBottom: 2 },
   usdtRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
   usdtBalance: { fontSize: 18, fontWeight: '700', color: COLORS.gold },
   addressRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: COLORS.background, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginBottom: 12 },
@@ -406,7 +420,7 @@ const styles = StyleSheet.create({
   emptySubtitle: { fontSize: 14, color: COLORS.textMuted, textAlign: 'center', marginTop: 8, lineHeight: 20, marginBottom: 20 },
   walletActions: { gap: 12, width: '100%' },
   quickActions: { flexDirection: 'row', gap: 12, marginBottom: 24 },
-  quickAction: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: COLORS.surface, paddingVertical: 16, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border },
+  quickAction: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: COLORS.surfaceElevated, paddingVertical: 16, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
   quickActionText: { fontSize: 12, fontWeight: '600', color: COLORS.textMuted },
   section: { marginBottom: 24 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text, marginBottom: 12 },
@@ -441,7 +455,7 @@ const styles = StyleSheet.create({
   dangerButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16, marginBottom: 40 },
   dangerText: { fontSize: 14, color: COLORS.error, fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', paddingHorizontal: 24 },
-  modalContent: { backgroundColor: COLORS.surface, borderRadius: 20, padding: 24 },
+  modalContent: { backgroundColor: COLORS.surfaceElevated, borderRadius: 24, padding: 24 },
   modalTitle: { fontSize: 20, fontWeight: '700', color: COLORS.text, marginBottom: 8 },
   modalSubtitle: { fontSize: 14, color: COLORS.textMuted, marginBottom: 16, lineHeight: 20 },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 16 },

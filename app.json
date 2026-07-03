@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/brand/splash.jpg",
       "resizeMode": "cover",
-      "backgroundColor": "#0A0A0A"
+      "backgroundColor": "#0F1113"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -26,7 +26,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0A0A0A"
+        "backgroundColor": "#0F1113"
       },
       "package": "com.goalmind.app",
       "permissions": [

@@ -15,10 +15,11 @@ import {
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { COLORS } from '@/types';
+import { COLORS, FONTS } from '@/types';
 import { useAIStore, useMatchStore } from '@/stores';
 import { useFootballData } from '@/hooks/useFootballData';
 import { formatTeamStatsForAnalysis } from '@/lib/data/football';
+import { getTeamFlag } from '@/lib/utils/flags';
 import { ensureModelLoaded } from '@/lib/ai/models';
 import { Badge } from '@/components/ui';
 
@@ -151,14 +152,14 @@ export default function AnalyzeScreen() {
                 style={styles.liveMatchCard}
                 onPress={() => router.push(`/match/${match.id}`)}
               >
-                <Text style={styles.liveTeamName}>{match.homeTeam.shortName}</Text>
+                <Text style={styles.liveTeamName}>{getTeamFlag(match.homeTeam.name)} {match.homeTeam.shortName}</Text>
                 <View style={styles.liveScoreContainer}>
                   <Text style={styles.liveScore}>
                     {match.score.fullTime.home ?? 0} - {match.score.fullTime.away ?? 0}
                   </Text>
                   <Text style={styles.liveMinute}>LIVE</Text>
                 </View>
-                <Text style={styles.liveTeamName}>{match.awayTeam.shortName}</Text>
+                <Text style={styles.liveTeamName}>{getTeamFlag(match.awayTeam.name)} {match.awayTeam.shortName}</Text>
               </Pressable>
             ))}
           </ScrollView>
@@ -209,7 +210,7 @@ export default function AnalyzeScreen() {
 
             <View style={styles.matchTeams}>
               <View style={styles.teamSide}>
-                <Text style={styles.teamName}>{match.homeTeam.shortName}</Text>
+                <Text style={styles.teamName}>{getTeamFlag(match.homeTeam.name)} {match.homeTeam.shortName}</Text>
                 <Text style={styles.teamFullName}>{match.homeTeam.name}</Text>
               </View>
 
@@ -224,7 +225,7 @@ export default function AnalyzeScreen() {
               </View>
 
               <View style={[styles.teamSide, { alignItems: 'flex-end' }]}>
-                <Text style={styles.teamName}>{match.awayTeam.shortName}</Text>
+                <Text style={styles.teamName}>{match.awayTeam.shortName} {getTeamFlag(match.awayTeam.name)}</Text>
                 <Text style={styles.teamFullName}>{match.awayTeam.name}</Text>
               </View>
             </View>
@@ -263,17 +264,17 @@ const styles = StyleSheet.create({
   brandRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
   brandLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   brandLogo: { width: 26, height: 26, borderRadius: 6 },
-  brandName: { fontSize: 15, fontWeight: '700', color: COLORS.text, letterSpacing: 0.2 },
+  brandName: { fontFamily: FONTS.displaySemibold, fontSize: 15, color: COLORS.text, letterSpacing: 0.2 },
   brandRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   header: { marginBottom: 20 },
-  greeting: { fontSize: 28, fontWeight: '800', color: COLORS.text, letterSpacing: -0.6 },
+  greeting: { fontFamily: FONTS.display, fontSize: 26, color: COLORS.text, letterSpacing: 0 },
   subtitle: { fontSize: 13, color: COLORS.textMuted, marginTop: 3 },
   statusBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, gap: 6 },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   statusText: { fontSize: 12, color: COLORS.textMuted, fontWeight: '600' },
-  liveBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.error + '20', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, gap: 6 },
+  liveBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, gap: 6 },
   liveText: { fontSize: 11, color: COLORS.error, fontWeight: '700', letterSpacing: 1 },
-  aiCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, padding: 16, borderRadius: 12, marginBottom: 24, gap: 12, borderWidth: 1, borderColor: COLORS.primaryMuted },
+  aiCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surfaceElevated, padding: 16, borderRadius: 18, marginBottom: 24, gap: 12, borderWidth: 1, borderColor: COLORS.primaryMuted },
   aiCardText: { flex: 1, fontSize: 14, color: COLORS.text, lineHeight: 20 },
   aiCardSubtext: { fontSize: 12, color: COLORS.textDim },
   errorBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: COLORS.warning + '15', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8, marginBottom: 16 },
@@ -282,30 +283,26 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text },
   lastUpdated: { fontSize: 11, color: COLORS.textDim },
-  liveMatchCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 14, padding: 16, marginRight: 12, gap: 12, borderWidth: 1, borderColor: COLORS.error + '25' },
+  liveMatchCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surfaceElevated, borderRadius: 20, padding: 16, marginRight: 12, gap: 12, borderWidth: 1, borderColor: COLORS.primary + '30' },
   liveTeamName: { fontSize: 16, fontWeight: '700', color: COLORS.text },
   liveScoreContainer: { alignItems: 'center' },
   liveScore: { fontSize: 20, fontWeight: '800', color: COLORS.text },
   liveMinute: { fontSize: 10, color: COLORS.error, fontWeight: '700', marginTop: 2 },
   matchList: { flex: 1 },
-  matchCard: { 
-    backgroundColor: COLORS.surface, 
-    borderRadius: 18, 
-    padding: 20, 
-    marginBottom: 14, 
-    borderWidth: 1, 
-    borderColor: COLORS.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
+  matchCard: {
+    backgroundColor: COLORS.surfaceElevated,
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   matchCardPressed: { opacity: 0.8, transform: [{ scale: 0.98 }] },
   matchCardSelected: { borderColor: COLORS.primary },
   matchCompetition: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14 },
   competitionText: { fontSize: 11, color: COLORS.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.8 },
-  matchLiveBadge: { backgroundColor: COLORS.error + '20', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginLeft: 'auto' },
-  matchLiveText: { fontSize: 10, color: COLORS.error, fontWeight: '700' },
+  matchLiveBadge: { backgroundColor: COLORS.primary, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999, marginLeft: 'auto' },
+  matchLiveText: { fontSize: 10, color: COLORS.background, fontWeight: '800', letterSpacing: 0.4 },
   matchTeams: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   teamSide: { flex: 1 },
   teamName: { fontSize: 24, fontWeight: '800', color: COLORS.text, letterSpacing: -0.5 },

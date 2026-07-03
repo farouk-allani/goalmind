@@ -5,7 +5,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '@/types';
-import { Card, Button } from '@/components/ui';
+import { Card, Button, Pill } from '@/components/ui';
 import { useAI } from '@/hooks/useAI';
 
 interface CommentaryEvent {
@@ -94,21 +94,12 @@ Generate commentary for this moment.`;
         </View>
         <View style={styles.languageSelector}>
           {languages.slice(0, 3).map((lang) => (
-            <Pressable
+            <Pill
               key={lang.code}
-              style={[
-                styles.langButton,
-                selectedLanguage === lang.code && styles.langButtonActive,
-              ]}
+              label={lang.code.toUpperCase()}
+              variant={selectedLanguage === lang.code ? 'active' : 'inactive'}
               onPress={() => setSelectedLanguage(lang.code)}
-            >
-              <Text style={[
-                styles.langText,
-                selectedLanguage === lang.code && styles.langTextActive,
-              ]}>
-                {lang.code.toUpperCase()}
-              </Text>
-            </Pressable>
+            />
           ))}
         </View>
       </View>
@@ -211,24 +202,7 @@ const styles = StyleSheet.create({
   },
   languageSelector: {
     flexDirection: 'row',
-    gap: 4,
-  },
-  langButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    backgroundColor: COLORS.surface,
-  },
-  langButtonActive: {
-    backgroundColor: COLORS.primaryMuted,
-  },
-  langText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.textDim,
-  },
-  langTextActive: {
-    color: COLORS.primary,
+    gap: 6,
   },
   feed: {
     maxHeight: 200,

@@ -1,25 +1,34 @@
 // GoalMind — Tab Layout
 // Four tabs: Analyze, Predict, Wallet, Settings
+// Properly accounts for Android system navigation bar (Samsung gesture/3-button nav)
 
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '@/types';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+
+  // Base visual height for the tab bar content area.
+  // We add the device bottom inset so the tab bar sits *above* the system navigation bar.
+  const baseTabHeight = 68;
+  const tabBarStyle = {
+    backgroundColor: COLORS.surface,
+    borderTopColor: COLORS.border,
+    borderTopWidth: 1,
+    height: baseTabHeight + insets.bottom,
+    paddingBottom: Math.max(insets.bottom, 10),
+    paddingTop: 10,
+  };
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: COLORS.surface,
-          borderTopColor: COLORS.border,
-          borderTopWidth: 1,
-          height: 88,
-          paddingBottom: 28,
-          paddingTop: 8,
-        },
+        tabBarStyle,
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.textDim,
         tabBarLabelStyle: {

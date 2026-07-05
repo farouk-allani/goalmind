@@ -9,6 +9,7 @@ import {
   Pressable,
   StyleSheet,
   Image,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,12 +20,18 @@ import { getTeamFlag } from '@/lib/utils/flags';
 import { useAIStore } from '@/stores';
 import { predictMatch, type PredictionResult } from '@/lib/predictions/engine';
 import { Card, Button, Badge, MiniStatsGrid, CircularProgress } from '@/components/ui';
+import { useWallet } from '@/hooks/useWallet';
+import { useAgent, resolveDemoAddress } from '@/hooks/useAgent';
 
 export default function PredictScreen() {
   const { modelsLoaded } = useAIStore();
+  const { isReady: walletReady, sendTip, refreshBalance } = useWallet();
+  const { isReady: agentReady, evaluateForMatch, executeTip: executeAgentTip } = useAgent();
+
   const [predictions, setPredictions] = useState<PredictionResult[]>([]);
   const [predicting, setPredicting] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [stakingId, setStakingId] = useState<string | null>(null);
 
   const generatePredictions = useCallback(async () => {
     setPredicting(true);
@@ -39,6 +46,58 @@ export default function PredictScreen() {
       setPredicting(false);
     }
   }, []);
+
+  // REAL stake using user's WDK wallet (sends a demo tip/stake amount to a fan address)
+  const handleRealStake = useCallback(async (pred: PredictionResult, matchName: string) => {
+    if (!walletReady) {
+      Alert.alert('Wallet Required', 'Create your self-custodial WDK wallet in the Wallet tab first.');
+      router.push('/wallet');
+      return;
+    }
+    setStakingId(pred.matchId);
+    try {
+      // Stake 1.5 USDt equivalent on the favored side (demo)
+      const amount = '1.50';
+      const favored = pred.homeWin > pred.awayWin ? 'home' : 'away';
+      const teamName = favored === 'home' ? SAMPLE_MATCHES[0].homeTeam.name : SAMPLE_MATCHES[0].awayTeam.name;
+      const to = resolveDemoAddress(teamName);
+
+      const success = await sendTip(to, amount, `Staked on ${matchName} (${favored})`);
+      if (success) {
+        Alert.alert('Stake Sent (real WDK)', `${amount} USDt staked on ${matchName} via your self-custodial wallet.\n\nAddress: ${to.slice(0, 10)}...`);
+        refreshBalance();
+      }
+    } finally {
+      setStakingId(null);
+    }
+  }, [walletReady, sendTip, refreshBalance]);
+
+  // Let the real agent evaluate + execute a small tip based on this prediction
+  const handleAgentStake = useCallback(async (pred: PredictionResult, matchId: string) => {
+    if (!agentReady) {
+      Alert.alert('Agent Wallet', 'Initialize the AI Agent in the Wallet tab to let it act.');
+      router.push('/wallet');
+      return;
+    }
+    setStakingId(matchId);
+    try {
+      const decision = evaluateForMatch(matchId);
+      if (!decision?.shouldAct || !decision.action) {
+        Alert.alert('Agent Decision', decision?.reasoning || 'Agent chose not to act on this prediction.');
+        return;
+      }
+      const toAddr = resolveDemoAddress(decision.action.to);
+      const action = await executeAgentTip(toAddr, decision.action.amount, matchId);
+
+      if (action.status === 'rejected') {
+        Alert.alert('Agent Blocked by WDK Policy', action.reason || 'Policy violation.');
+      } else if (action.status === 'executed') {
+        Alert.alert('Agent Executed Stake', `${decision.action.amount} USDt tip placed by agent on this prediction.`);
+      }
+    } finally {
+      setStakingId(null);
+    }
+  }, [agentReady, evaluateForMatch, executeAgentTip]);
 
   const toggleExpanded = useCallback((matchId: string) => {
     setExpandedId((prev) => (prev === matchId ? null : matchId));
@@ -221,13 +280,33 @@ export default function PredictScreen() {
                 </Text>
               </View>
 
-              {/* Direct WDK utility link */}
-              <Pressable 
-                style={styles.stakeBtn}
-                onPress={() => router.push('/wallet')}>
-                <Ionicons name="cash-outline" size={15} color={COLORS.gold} />
-                <Text style={styles.stakeBtnText}>Stake on this with your WDK wallet</Text>
-              </Pressable>
+              {/* Real WDK + Agent actions */}
+              <View style={styles.stakeRow}>
+                <Pressable
+                  style={[styles.stakeBtn, styles.stakeBtnPrimary]}
+                  onPress={() => handleRealStake(pred, `${pred.homeTeam} vs ${pred.awayTeam}`)}
+                  disabled={stakingId === pred.matchId || !walletReady}
+                >
+                  <Ionicons name="wallet" size={15} color={COLORS.background} />
+                  <Text style={[styles.stakeBtnText, { color: COLORS.background, textTransform: 'uppercase', letterSpacing: 0.4 }]}>
+                    {stakingId === pred.matchId ? 'Staking...' : 'Stake 1.5 USDt (WDK)'}
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  style={[styles.stakeBtn, styles.stakeBtnAgent]}
+                  onPress={() => handleAgentStake(pred, pred.matchId)}
+                  disabled={stakingId === pred.matchId || !agentReady}
+                >
+                  <Ionicons name="flash" size={15} color={COLORS.gold} />
+                  <Text style={[styles.stakeBtnText, { textTransform: 'uppercase', letterSpacing: 0.4 }]}>
+                    {stakingId === pred.matchId ? '...' : 'Agent Tip'}
+                  </Text>
+                </Pressable>
+              </View>
+              <Text style={styles.stakeHint}>
+                Real self-custodial transfer (user wallet) or agent action (policy-enforced by WDK)
+              </Text>
             </Pressable>
           );
         })}
@@ -309,14 +388,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'center', 
-    gap: 6, 
+    gap: 8, 
     backgroundColor: COLORS.gold + '12', 
-    paddingVertical: 10, 
-    borderRadius: 10,
+    paddingVertical: 14, 
+    paddingHorizontal: 20,
+    borderRadius: 999,
     borderWidth: 1,
     borderColor: COLORS.gold + '25',
   },
   stakeBtnText: { color: COLORS.gold, fontWeight: '700', fontSize: 13 },
+  stakeRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  stakeBtnPrimary: { flex: 1, backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  stakeBtnAgent: { flex: 1, backgroundColor: 'transparent', borderColor: COLORS.gold + '40' },
+  stakeHint: { fontSize: 10, color: COLORS.textDim, textAlign: 'center', marginTop: 4 },
   emptyState: { alignItems: 'center', paddingVertical: 60 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text, marginTop: 16 },
   emptySubtitle: { fontSize: 14, color: COLORS.textMuted, textAlign: 'center', marginTop: 8, lineHeight: 20 },

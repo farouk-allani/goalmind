@@ -38,9 +38,9 @@ export function Button({
   style,
 }: ButtonProps) {
   const sizeStyles: Record<ButtonSize, { py: number; px: number; fontSize: number; iconSize: number; badge: number }> = {
-    sm: { py: 8, px: 14, fontSize: 12, iconSize: 15, badge: 22 },
-    md: { py: 13, px: 22, fontSize: 13, iconSize: 17, badge: 28 },
-    lg: { py: 16, px: 28, fontSize: 14, iconSize: 19, badge: 32 },
+    sm: { py: 10, px: 18, fontSize: 12, iconSize: 15, badge: 22 },
+    md: { py: 14, px: 24, fontSize: 13, iconSize: 17, badge: 28 },
+    lg: { py: 18, px: 32, fontSize: 14, iconSize: 19, badge: 32 },
   };
   const s = sizeStyles[size];
   const showArrowBadge = (arrowBadge ?? size !== 'sm') && (variant === 'primary' || variant === 'secondary');
@@ -93,8 +93,7 @@ export function Button({
           styles.button,
           {
             paddingVertical: s.py,
-            paddingHorizontal: showArrowBadge ? s.py / 2 : s.px,
-            paddingLeft: s.px,
+            paddingHorizontal: s.px,
             opacity: pressed ? 0.88 : disabled ? 0.5 : 1,
           },
           fullWidth && { width: '100%' },
@@ -122,8 +121,7 @@ export function Button({
         {
           backgroundColor: variant === 'secondary' ? COLORS.surfaceElevated : 'transparent',
           paddingVertical: s.py,
-          paddingHorizontal: showArrowBadge ? s.py / 2 : s.px,
-          paddingLeft: s.px,
+          paddingHorizontal: s.px,
           opacity: pressed ? 0.8 : disabled ? 0.5 : 1,
           borderWidth: variant === 'outline' ? 1 : variant === 'secondary' ? 1 : 0,
           borderColor: variant === 'outline' ? COLORS.text + '30' : 'rgba(255,255,255,0.1)',
@@ -399,6 +397,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
+    borderRadius: 999,
   },
   buttonText: {
     fontWeight: '700',

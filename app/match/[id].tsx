@@ -11,6 +11,7 @@ import {
   StyleSheet,
   Modal,
   Image,
+  Alert,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -27,16 +28,22 @@ import { PossessionBar, MomentumGauge, StatsComparison } from '@/components/anal
 import { CameraAnalysis } from '@/components/analysis/CameraAnalysis';
 import { LiveCommentary } from '@/components/analysis/LiveCommentary';
 import type { PredictionResult } from '@/lib/predictions/engine';
+import { useWallet } from '@/hooks/useWallet';
+import { useAgent, resolveDemoAddress } from '@/hooks/useAgent';
 
 export default function MatchDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { modelsLoaded, loading, setLoading } = useAIStore();
+  const { isReady: walletReady, sendTip } = useWallet();
+  const { isReady: agentReady, evaluateForMatch, executeTip: executeAgentTip } = useAgent();
+
   const [activeTab, setActiveTab] = useState<'analysis' | 'predict' | 'commentary' | 'camera'>('analysis');
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [prediction, setPrediction] = useState<PredictionResult | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [cameraAnalysis, setCameraAnalysis] = useState<string | null>(null);
   const analysisRunning = useRef(false);
+  const [actionBusy, setActionBusy] = useState(false);
 
   // Prefer the match handed over by the list screen (covers live-API
   // fixtures); fall back to the bundled samples for direct deep links.
@@ -302,16 +309,50 @@ Give a tactical analysis of this matchup.`;
                     </Text>
                   </View>
 
-                  {/* Stake CTA — Direct path to WDK utility */}
+                  {/* Real WDK stake + agent action */}
                   <Button
-                    title="Stake on this Prediction"
-                    onPress={() => {
+                    title={actionBusy ? 'Processing...' : 'Stake 1.5 USDt (real WDK)'}
+                    onPress={async () => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                      router.push('/wallet');
+                      if (!walletReady) {
+                        router.push('/wallet');
+                        return;
+                      }
+                      setActionBusy(true);
+                      try {
+                        const favored = (prediction?.homeWin || 0) > (prediction?.awayWin || 0) ? match.homeTeam.name : match.awayTeam.name;
+                        const to = resolveDemoAddress(favored);
+                        const ok = await sendTip(to, '1.50', `Stake on ${match.homeTeam.shortName} vs ${match.awayTeam.shortName}`);
+                        if (ok) Alert.alert('Staked!', 'Real transfer sent from your WDK wallet.');
+                      } finally { setActionBusy(false); }
                     }}
                     icon="cash"
                     fullWidth
+                    disabled={actionBusy}
                   />
+                  {agentReady && (
+                    <Button
+                      title={actionBusy ? '...' : 'Let Agent Tip (policy enforced)'}
+                      onPress={async () => {
+                        setActionBusy(true);
+                        try {
+                          const dec = evaluateForMatch(match.id);
+                          if (dec?.shouldAct && dec.action) {
+                            const to = resolveDemoAddress(dec.action.to);
+                            const act = await executeAgentTip(to, dec.action.amount, match.id);
+                            Alert.alert(act.status === 'rejected' ? 'Blocked by WDK Policy' : 'Agent Acted', act.reason || act.status);
+                          } else {
+                            Alert.alert('Agent', dec?.reasoning || 'No action');
+                          }
+                        } finally { setActionBusy(false); }
+                      }}
+                      variant="outline"
+                      size="sm"
+                      icon="flash"
+                      fullWidth
+                      disabled={actionBusy}
+                    />
+                  )}
                 </Card>
 
                 {/* Factors */}

@@ -22,8 +22,8 @@ We believe judges should know exactly what they're looking at:
 | Statistical prediction engine | ✅ Real math — Elo + Poisson + form, runs instantly on-device |
 | Wallet create/restore (BIP-39) | ✅ Real — WDK seed generation + validation, keys in SecureStore |
 | Tips (on-chain transfers) | ✅ Real — WDK `account.transfer()` / `sendTransaction()`, Sepolia testnet by default |
-| Agent wallet with spending limits | ✅ Real — WDK **policy engine** (`registerPolicy`) denies over-limit txs before signing |
-| Prediction staking & tipping pools | 🟡 Local ledger demo — flows and math are real, settlement contract is roadmap |
+| Agent wallet with spending limits | ✅ Fully wired + live — WDK **policy engine** (`registerPolicy`) denies over-limit txs before signing. UI triggers real evaluate/simulate/execute with visible PolicyViolationError. |
+| Prediction staking & tipping pools | ✅ Real WDK transfers from user/agent wallets to demo addresses + local tracking. Full on-chain escrow is next. |
 
 ## Quick start for judges
 

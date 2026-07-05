@@ -10,7 +10,12 @@
     "splash": {
       "image": "./assets/brand/splash.jpg",
       "resizeMode": "cover",
-      "backgroundColor": "#0F1113"
+      "backgroundColor": "#0F1113",
+      "dark": {
+        "image": "./assets/brand/splash.jpg",
+        "resizeMode": "cover",
+        "backgroundColor": "#0F1113"
+      }
     },
     "assetBundlePatterns": [
       "**/*"
@@ -32,7 +37,11 @@
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
-      ]
+      ],
+      "navigationBar": {
+        "backgroundColor": "#17191C",
+        "barStyle": "dark-content"
+      }
     },
     "plugins": [
       "expo-router",
@@ -43,7 +52,8 @@
         "expo-build-properties",
         {
           "android": {
-            "minSdkVersion": 29
+            "minSdkVersion": 29,
+            "edgeToEdgeEnabled": true
           }
         }
       ],

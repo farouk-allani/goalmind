@@ -60,5 +60,7 @@ All of this is reproducible from our commit history — the project was built en
 2. Camera tab → point at match footage → on-device vision analysis
 3. Predict tab → statistical engine with factor breakdown → Stake
 4. Wallet → real Sepolia address, faucet-funded → send tip → explorer link resolves
-5. Agent → set 1 USDt limit → attempt 5 USDt tip → **rejected by WDK policy engine** (the money shot for WDK)
+5. Wallet tab → Initialize Agent → Set low limit (e.g. 1) → "Demo: Set 1 USDt limit & try 5 USDt" or Execute → **rejected by WDK policy engine BEFORE signing** (the money shot)
+   - Or go to Predict tab → generate predictions → tap "Agent Tip" on a match
 6. Airplane mode → analysis still works
+7. Predict → "Stake 1.5 USDt (WDK)" performs a real user-wallet transfer via WDK. Pools also trigger real transfers.

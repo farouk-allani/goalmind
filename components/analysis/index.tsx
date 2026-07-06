@@ -155,7 +155,7 @@ export function StatsComparison({ homeTeam, awayTeam, stats }: StatsComparisonPr
 
 const styles = StyleSheet.create({
   possessionContainer: {
-    marginBottom: 16,
+    // Spacing between stacked widgets is owned by the parent ScrollView's `gap`.
   },
   possessionHeader: {
     flexDirection: 'row',
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   momentumCard: {
-    marginBottom: 16,
+    // Spacing owned by the parent ScrollView's `gap`.
   },
   momentumHeader: {
     flexDirection: 'row',

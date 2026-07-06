@@ -20,7 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS } from '@/types';
 import { SAMPLE_MATCHES, formatTeamStatsForAnalysis, type MatchData } from '@/lib/data/football';
 import { getTeamFlag } from '@/lib/utils/flags';
-import { useAIStore, useMatchStore } from '@/stores';
+import { useAIStore, useMatchStore, useAnalysisStore } from '@/stores';
 import { predictMatch } from '@/lib/predictions/engine';
 import { generateTextStream, isModelLoaded } from '@/lib/ai/models';
 import { Button, Card, Badge } from '@/components/ui';
@@ -38,8 +38,23 @@ export default function MatchDetailScreen() {
   const { isReady: agentReady, evaluateForMatch, executeTip: executeAgentTip } = useAgent();
 
   const [activeTab, setActiveTab] = useState<'analysis' | 'predict' | 'commentary' | 'camera'>('analysis');
-  const [analysis, setAnalysis] = useState<string | null>(null);
-  const [prediction, setPrediction] = useState<PredictionResult | null>(null);
+
+  // Cache the tactical read + prediction per match so leaving and returning to
+  // this screen keeps a completed analysis instead of wiping it.
+  const cached = useAnalysisStore((s) => (id ? s.byMatch[id] : undefined));
+  const analysis = cached?.analysis ?? null;
+  const prediction = cached?.prediction ?? null;
+  const setCachedAnalysis = useAnalysisStore((s) => s.setAnalysis);
+  const setCachedPrediction = useAnalysisStore((s) => s.setPrediction);
+  const setAnalysis = useCallback(
+    (val: string | null) => { if (id) setCachedAnalysis(id, val); },
+    [id, setCachedAnalysis],
+  );
+  const setPrediction = useCallback(
+    (val: PredictionResult | null) => { if (id) setCachedPrediction(id, val); },
+    [id, setCachedPrediction],
+  );
+
   const [showCamera, setShowCamera] = useState(false);
   const [cameraAnalysis, setCameraAnalysis] = useState<string | null>(null);
   const analysisRunning = useRef(false);
@@ -187,7 +202,11 @@ Give a tactical analysis of this matchup.`;
       </View>
 
       {/* Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentInner}
+        showsVerticalScrollIndicator={false}
+      >
         {activeTab === 'analysis' && (
           <>
             {loading ? (
@@ -466,6 +485,7 @@ const styles = StyleSheet.create({
   tabText: { fontSize: 11, fontWeight: '600', color: COLORS.muted, textTransform: 'uppercase', letterSpacing: 0.3 },
   tabTextActive: { color: COLORS.background },
   content: { flex: 1 },
+  contentInner: { gap: 14, paddingBottom: 28 },
   loadingContainer: { alignItems: 'center', paddingVertical: 40, gap: 12 },
   loadingText: { fontSize: 16, color: COLORS.text },
   emptyState: { alignItems: 'center', paddingVertical: 40, gap: 12 },

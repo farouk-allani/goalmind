@@ -3,6 +3,7 @@
 
 import { create } from 'zustand';
 import type { Match, AnalysisResult, WalletState, Tip, MatchPrediction } from '@/types';
+import type { PredictionResult } from '@/lib/predictions/engine';
 
 // AI Store — manages on-device model state
 interface AIStore {
@@ -67,10 +68,14 @@ interface WalletStore {
   wallet: WalletState;
   tips: Tip[];
   initializing: boolean;
-  
+  // True while we silently re-hydrate a previously created wallet from the
+  // securely stored seed on app launch (prevents the "Create Wallet" flash).
+  restoring: boolean;
+
   setWallet: (wallet: Partial<WalletState>) => void;
   addTip: (tip: Tip) => void;
   setInitializing: (initializing: boolean) => void;
+  setRestoring: (restoring: boolean) => void;
   reset: () => void;
 }
 
@@ -85,13 +90,92 @@ export const useWalletStore = create<WalletStore>((set) => ({
   wallet: initialWallet,
   tips: [],
   initializing: false,
-  
-  setWallet: (partial) => set((state) => ({ 
-    wallet: { ...state.wallet, ...partial } 
+  // Start true: on launch we optimistically assume a returning user until the
+  // stored-seed check resolves, so we never flash "Create Wallet" at them.
+  restoring: true,
+
+  setWallet: (partial) => set((state) => ({
+    wallet: { ...state.wallet, ...partial }
   })),
-  addTip: (tip) => set((state) => ({ 
-    tips: [tip, ...state.tips] 
+  addTip: (tip) => set((state) => ({
+    tips: [tip, ...state.tips]
   })),
   setInitializing: (initializing) => set({ initializing }),
+  setRestoring: (restoring) => set({ restoring }),
   reset: () => set({ wallet: initialWallet, tips: [] }),
+}));
+
+// Analysis Store — caches the on-device tactical read + statistical prediction
+// per match so navigating away and back does not wipe a completed analysis.
+interface AnalysisCacheEntry {
+  analysis: string | null;
+  prediction: PredictionResult | null;
+}
+
+interface AnalysisStore {
+  byMatch: Record<string, AnalysisCacheEntry>;
+  setAnalysis: (matchId: string, analysis: string | null) => void;
+  setPrediction: (matchId: string, prediction: PredictionResult | null) => void;
+  clear: (matchId: string) => void;
+}
+
+export const useAnalysisStore = create<AnalysisStore>((set) => ({
+  byMatch: {},
+  setAnalysis: (matchId, analysis) =>
+    set((state) => ({
+      byMatch: {
+        ...state.byMatch,
+        [matchId]: { prediction: state.byMatch[matchId]?.prediction ?? null, analysis },
+      },
+    })),
+  setPrediction: (matchId, prediction) =>
+    set((state) => ({
+      byMatch: {
+        ...state.byMatch,
+        [matchId]: { analysis: state.byMatch[matchId]?.analysis ?? null, prediction },
+      },
+    })),
+  clear: (matchId) =>
+    set((state) => {
+      const next = { ...state.byMatch };
+      delete next[matchId];
+      return { byMatch: next };
+    }),
+}));
+
+// Toast Store — app-wide, non-blocking snackbar (replaces intrusive Alerts for
+// lightweight confirmations like "copied to clipboard").
+type ToastType = 'success' | 'error' | 'info';
+
+interface ToastOptions {
+  type?: ToastType;
+  icon?: string;
+  duration?: number;
+}
+
+interface ToastStore {
+  id: number;
+  message: string | null;
+  type: ToastType;
+  icon?: string;
+  duration: number;
+  show: (message: string, options?: ToastOptions) => void;
+  hide: () => void;
+}
+
+export const useToastStore = create<ToastStore>((set) => ({
+  id: 0,
+  message: null,
+  type: 'success',
+  icon: undefined,
+  duration: 2200,
+  show: (message, options = {}) =>
+    set((state) => ({
+      id: state.id + 1,
+      message,
+      type: options.type ?? 'success',
+      icon: options.icon,
+      duration: options.duration ?? 2200,
+    })),
+  hide: () => set({ message: null }),
 }));

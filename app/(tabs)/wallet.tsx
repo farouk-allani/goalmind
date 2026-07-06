@@ -12,6 +12,7 @@ import {
   StyleSheet,
   Modal,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,11 +23,15 @@ import { formatAddress, formatAmount, CHAINS, type ChainId } from '@/lib/wallet/
 import { Card, Button, Badge } from '@/components/ui';
 import { SAMPLE_MATCHES } from '@/lib/data/football';
 import { predictMatch } from '@/lib/predictions/engine';
+import { useToastStore } from '@/stores';
+import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
 
 export default function WalletScreen() {
   const {
     isReady,
     initializing,
+    restoring,
     address,
     balance,
     usdtBalance,
@@ -40,6 +45,8 @@ export default function WalletScreen() {
     refreshBalance,
     reset,
   } = useWallet();
+
+  const showToast = useToastStore((s) => s.show);
 
   const {
     isReady: agentReady,
@@ -69,6 +76,7 @@ export default function WalletScreen() {
   const [agentLimitInput, setAgentLimitInput] = useState('5');
   const [agentSimulateResult, setAgentSimulateResult] = useState<{ decision: string; reason?: string } | null>(null);
   const [agentBusy, setAgentBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Auto-init agent if user wallet is ready (for seamless demo)
   useEffect(() => {
@@ -147,6 +155,15 @@ export default function WalletScreen() {
     setAgentSimulateResult(null);
     Alert.alert('Agent Config Updated', `Per-tx limit set to ${limit} USDt via WDK policy engine.`);
   }, [agentLimitInput, updateAgentConfig]);
+
+  const handleCopyAddress = useCallback(async () => {
+    if (!address) return;
+    await Clipboard.setStringAsync(address);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setCopied(true);
+    showToast('Wallet address copied', { type: 'success', icon: 'copy' });
+    setTimeout(() => setCopied(false), 1600);
+  }, [address, showToast]);
 
   const handleAgentEvaluate = useCallback(() => {
     if (!agentReady) {
@@ -259,7 +276,12 @@ export default function WalletScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Wallet Card */}
         <Card style={styles.walletCard}>
-          {isReady ? (
+          {!isReady && restoring ? (
+            <View style={styles.walletRestoring}>
+              <ActivityIndicator color={COLORS.primary} />
+              <Text style={styles.walletRestoringText}>Restoring your wallet…</Text>
+            </View>
+          ) : isReady ? (
             <>
               <View style={styles.walletHeader}>
                 <View style={styles.walletIcon}>
@@ -279,13 +301,21 @@ export default function WalletScreen() {
                 <Text style={styles.usdtBalance}>{formatAmount(usdtBalance, 2)} USDt (on supported chains)</Text>
               </View>
 
-              {/* Address */}
-              <View style={styles.addressRow}>
+              {/* Address - tap to copy full address */}
+              <Pressable
+                style={({ pressed }) => [styles.addressRow, pressed && styles.addressRowPressed]}
+                onPress={handleCopyAddress}
+                hitSlop={8}
+              >
                 <Text style={styles.addressText}>{formatAddress(address || '')}</Text>
-                <Pressable style={styles.copyButton}>
-                  <Ionicons name="copy-outline" size={16} color={COLORS.textMuted} />
-                </Pressable>
-              </View>
+                <View style={styles.copyButton}>
+                  <Ionicons
+                    name={copied ? 'checkmark' : 'copy-outline'}
+                    size={16}
+                    color={copied ? COLORS.success : COLORS.textMuted}
+                  />
+                </View>
+              </Pressable>
 
               {/* Chain Selector */}
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chainSelector}>
@@ -647,8 +677,11 @@ const styles = StyleSheet.create({
   usdtRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
   usdtBalance: { fontSize: 18, fontWeight: '700', color: COLORS.gold },
   addressRow: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: COLORS.background, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginBottom: 12 },
+  addressRowPressed: { opacity: 0.6 },
   addressText: { flex: 1, fontSize: 13, color: COLORS.textMuted, fontFamily: 'monospace' },
   copyButton: { padding: 4 },
+  walletRestoring: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, gap: 12 },
+  walletRestoringText: { fontSize: 14, color: COLORS.textMuted, fontWeight: '500' },
   chainSelector: { marginBottom: 12 },
   chainButton: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: COLORS.background, marginRight: 8 },
   chainButtonActive: { backgroundColor: COLORS.primaryMuted },

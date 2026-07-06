@@ -114,53 +114,57 @@ export default function PredictScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Hero Banner */}
-      <View style={styles.heroWrap}>
-        <Image 
-          source={require('@/assets/brand/hero-predictions.jpg')} 
-          style={styles.heroImage}
-          resizeMode="cover" 
-        />
-        <LinearGradient colors={['rgba(0,0,0,0.1)', 'rgba(10,10,10,0.92)']} style={styles.heroOverlay} />
-        <View style={styles.heroText}>
-          <Text style={styles.title}>Predictions</Text>
-          <Text style={styles.subtitle}>For the Tether Developers Cup • Fully private</Text>
-        </View>
-      </View>
-
-      {/* Generate Button */}
-      <Button
-        title={predicting ? 'Computing...' : 'Generate Predictions'}
-        onPress={generatePredictions}
-        icon="flash"
-        loading={predicting}
-        fullWidth
-      />
-
-      {/* Algorithm Info */}
-      <View style={styles.algoInfo}>
-        <Ionicons name="information-circle" size={14} color={COLORS.textDim} />
-        <Text style={styles.algoText}>
-          Uses Elo ratings, Poisson distribution, and weighted form analysis. All computed on-device.
-        </Text>
-      </View>
-
-      {predictions.length > 0 && (
-        <Card style={styles.statsSection}>
-          <View style={styles.statsRing}>
-            <CircularProgress value={avgConfidence} size={84} label="Avg Confidence" />
-          </View>
-          <MiniStatsGrid
-            items={[
-              { icon: 'football', value: predictions.length, label: 'Matches' },
-              { icon: 'flash', value: highConfidenceCount, label: 'High Confidence', color: COLORS.success },
-              { icon: 'trending-up', value: avgTotalXg.toFixed(1), label: 'Avg Total xG', color: COLORS.gold },
-            ]}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Hero Banner */}
+        <View style={styles.heroWrap}>
+          <Image
+            source={require('@/assets/brand/hero-predictions.jpg')}
+            style={styles.heroImage}
+            resizeMode="cover"
           />
-        </Card>
-      )}
+          <LinearGradient colors={['rgba(0,0,0,0.1)', 'rgba(10,10,10,0.92)']} style={styles.heroOverlay} />
+          <View style={styles.heroText}>
+            <Text style={styles.title}>Predictions</Text>
+            <Text style={styles.subtitle}>For the Tether Developers Cup • Fully private</Text>
+          </View>
+        </View>
 
-      <ScrollView style={styles.predictionsList} showsVerticalScrollIndicator={false}>
+        {/* Generate Button */}
+        <Button
+          title={predicting ? 'Computing...' : 'Generate Predictions'}
+          onPress={generatePredictions}
+          icon="flash"
+          loading={predicting}
+          fullWidth
+        />
+
+        {/* Algorithm Info */}
+        <View style={styles.algoInfo}>
+          <Ionicons name="information-circle" size={14} color={COLORS.textDim} />
+          <Text style={styles.algoText}>
+            Uses Elo ratings, Poisson distribution, and weighted form analysis. All computed on-device.
+          </Text>
+        </View>
+
+        {predictions.length > 0 && (
+          <Card style={styles.statsSection}>
+            <View style={styles.statsRing}>
+              <CircularProgress value={avgConfidence} size={84} label="Avg Confidence" />
+            </View>
+            <MiniStatsGrid
+              items={[
+                { icon: 'football', value: predictions.length, label: 'Matches' },
+                { icon: 'flash', value: highConfidenceCount, label: 'High Confidence', color: COLORS.success },
+                { icon: 'trending-up', value: avgTotalXg.toFixed(1), label: 'Avg Total xG', color: COLORS.gold },
+              ]}
+            />
+          </Card>
+        )}
+
         {predictions.map((pred) => {
           const isExpanded = expandedId === pred.matchId;
 
@@ -327,7 +331,9 @@ export default function PredictScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background, paddingHorizontal: 20, paddingTop: 16 },
-  heroWrap: { 
+  scroll: { flex: 1, marginHorizontal: -20 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 32 },
+  heroWrap: {
     height: 138, 
     marginHorizontal: -20, 
     marginBottom: 20, 
@@ -345,7 +351,6 @@ const styles = StyleSheet.create({
   algoText: { fontSize: 12, color: COLORS.textDim, flex: 1, lineHeight: 16 },
   statsSection: { marginBottom: 16 },
   statsRing: { alignItems: 'center', marginBottom: 16 },
-  predictionsList: { flex: 1 },
   predictionCard: { backgroundColor: COLORS.surfaceElevated, borderRadius: 24, padding: 20, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
   matchHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
   teamCode: { fontSize: 24, fontWeight: '800', color: COLORS.text, letterSpacing: -0.5 },
@@ -390,8 +395,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center', 
     gap: 8, 
     backgroundColor: COLORS.gold + '12', 
-    paddingVertical: 14, 
-    paddingHorizontal: 20,
+    paddingVertical: 18, 
+    paddingHorizontal: 28,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: COLORS.gold + '25',

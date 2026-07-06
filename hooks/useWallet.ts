@@ -26,9 +26,14 @@ interface UseWalletOptions {
   defaultChain?: ChainId;
 }
 
+// Module-level guard so the silent restore runs once per app session, even
+// though several screens mount useWallet() against the shared store.
+let autoRestoreAttempted = false;
+
 interface UseWalletReturn {
   isReady: boolean;
   initializing: boolean;
+  restoring: boolean;
   address: string | null;
   balance: string;
   usdtBalance: string;
@@ -47,18 +52,47 @@ interface UseWalletReturn {
 export function useWallet(options: UseWalletOptions = {}): UseWalletReturn {
   const { autoInit = false, defaultChain = DEFAULT_CHAIN } = options;
 
-  const { wallet, initializing, tips, setWallet, setInitializing, addTip, reset: resetStore } = useWalletStore();
+  const { wallet, initializing, restoring, tips, setWallet, setInitializing, setRestoring, addTip, reset: resetStore } = useWalletStore();
   const [error, setError] = useState<string | null>(null);
   const [wdkInstance, setWdkInstance] = useState<WDK | null>(null);
   const [hasStoredSeed, setHasStoredSeed] = useState(false);
   const [usdtBalance, setUsdtBalance] = useState('0.00');
   const [currentChain, setCurrentChain] = useState<ChainId>(defaultChain);
 
-  // Check for stored seed on mount
+  // Check for a stored seed on mount, and silently re-hydrate a wallet that was
+  // already created on this device. The seed lives in SecureStore across app
+  // restarts, but the in-memory store resets — without this, a returning user
+  // is wrongly shown "Create Wallet".
   useEffect(() => {
+    let cancelled = false;
     getStoredSeedPhrase().then((seed) => {
+      if (cancelled) return;
       setHasStoredSeed(!!seed);
+
+      const alreadyInitialized = useWalletStore.getState().wallet.initialized;
+
+      // Nothing to restore (fresh install) or already live — drop the spinner
+      // so the correct UI ("Create Wallet" / connected) shows immediately.
+      if (!seed || alreadyInitialized) {
+        setRestoring(false);
+        return;
+      }
+
+      // Another mounted screen's hook already kicked off the restore; let it
+      // own the `restoring` flag instead of racing it.
+      if (autoRestoreAttempted) return;
+
+      autoRestoreAttempted = true;
+      setRestoring(true);
+      initialize(seed).finally(() => {
+        if (!cancelled) setRestoring(false);
+      });
     });
+    return () => {
+      cancelled = true;
+    };
+    // Run once on mount; `initialize` is stable enough for the default chain.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const initialize = useCallback(async (seedPhrase?: string) => {
@@ -194,6 +228,7 @@ export function useWallet(options: UseWalletOptions = {}): UseWalletReturn {
   return {
     isReady: wallet.initialized,
     initializing,
+    restoring,
     address: wallet.address,
     balance: wallet.balance,
     usdtBalance,

@@ -38,9 +38,9 @@ export function Button({
   style,
 }: ButtonProps) {
   const sizeStyles: Record<ButtonSize, { py: number; px: number; fontSize: number; iconSize: number; badge: number }> = {
-    sm: { py: 10, px: 18, fontSize: 12, iconSize: 15, badge: 22 },
-    md: { py: 14, px: 24, fontSize: 13, iconSize: 17, badge: 28 },
-    lg: { py: 18, px: 32, fontSize: 14, iconSize: 19, badge: 32 },
+    sm: { py: 12, px: 20, fontSize: 12, iconSize: 15, badge: 22 },
+    md: { py: 16, px: 28, fontSize: 13, iconSize: 17, badge: 28 },
+    lg: { py: 20, px: 36, fontSize: 14, iconSize: 19, badge: 32 },
   };
   const s = sizeStyles[size];
   const showArrowBadge = (arrowBadge ?? size !== 'sm') && (variant === 'primary' || variant === 'secondary');
@@ -92,8 +92,6 @@ export function Button({
         style={({ pressed }) => [
           styles.button,
           {
-            paddingVertical: s.py,
-            paddingHorizontal: s.px,
             opacity: pressed ? 0.88 : disabled ? 0.5 : 1,
           },
           fullWidth && { width: '100%' },
@@ -104,7 +102,13 @@ export function Button({
           colors={GRADIENTS.primary}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={styles.gradientButton}
+          style={[
+            styles.gradientButton,
+            {
+              paddingVertical: s.py,
+              paddingHorizontal: s.px,
+            },
+          ]}
         >
           {buttonInner}
         </LinearGradient>

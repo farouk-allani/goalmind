@@ -171,16 +171,18 @@ export function useAgent(): UseAgentReturn {
   };
 }
 
-// Helper demo addresses for realistic agent tips (self-custodial fan wallets in demo)
+// Helper demo addresses for realistic agent tips (self-custodial fan wallets in
+// demo). Kept lowercase so they're valid checksum-free addresses — a bad EIP-55
+// checksum would make the signer throw before the transfer is ever broadcast.
 export const DEMO_FAN_ADDRESSES: Record<string, string> = {
-  'Argentina': '0xA1f2B3c4D5e6F7a8B9c0d1E2f3A4b5C6d7E8f9A0',
-  'France': '0xB2c3D4e5F6a7B8c9D0e1F2a3B4c5D6e7F8a9B0c1',
-  'Brazil': '0xC3d4E5f6A7b8C9d0E1f2A3b4C5d6E7f8A9b0C1d2',
-  'Germany': '0xD4e5F6a7B8c9D0e1F2a3B4c5D6e7F8a9B0c1D2e3',
-  default: '0xF1a2B3c4D5e6F7a8B9c0D1e2F3a4B5c6D7e8F9a0',
+  'Argentina': '0xa1f2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0',
+  'France': '0xb2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1',
+  'Brazil': '0xc3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2',
+  'Germany': '0xd4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3',
+  default: '0xf1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0',
 };
 
 export function resolveDemoAddress(teamOrName: string): string {
   const key = Object.keys(DEMO_FAN_ADDRESSES).find(k => teamOrName.toLowerCase().includes(k.toLowerCase()));
-  return key ? DEMO_FAN_ADDRESSES[key] : DEMO_FAN_ADDRESSES.default;
+  return (key ? DEMO_FAN_ADDRESSES[key] : DEMO_FAN_ADDRESSES.default).toLowerCase();
 }

@@ -312,10 +312,16 @@ export async function createTip(
     const account = await getWdkAccount(wdk, chain);
     const config = CHAINS[chain];
 
+    // Normalize the recipient. A mixed-case address with a bad EIP-55 checksum
+    // makes ethers throw ("bad address checksum") *before* broadcasting, which
+    // looks like a network failure. Lowercasing yields a valid, checksum-free
+    // address the signer accepts.
+    const recipient = toAddress.trim().toLowerCase();
+
     if (config.usdtAddress) {
       const result = await account.transfer({
         token: config.usdtAddress,
-        recipient: toAddress,
+        recipient,
         amount: toBaseUnits(amount, USDT_DECIMALS),
       });
       return { txHash: result.hash, success: true, asset: 'USDt' };
@@ -323,7 +329,7 @@ export async function createTip(
 
     // Testnet: tip in native coin (interpreting the amount as ETH).
     const result = await account.sendTransaction({
-      to: toAddress,
+      to: recipient,
       value: toBaseUnits(amount, 18),
     });
     return { txHash: result.hash, success: true, asset: config.nativeCurrency.symbol };

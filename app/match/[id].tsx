@@ -2,7 +2,7 @@
 // Streams tactical analysis from the on-device QVAC LLM (token by token),
 // runs the statistical prediction engine, and hosts camera + commentary.
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -30,6 +30,7 @@ import { LiveCommentary } from '@/components/analysis/LiveCommentary';
 import type { PredictionResult } from '@/lib/predictions/engine';
 import { useWallet } from '@/hooks/useWallet';
 import { useAgent, resolveDemoAddress } from '@/hooks/useAgent';
+import { fetchLiveMatchStats, type LiveMatchStats } from '@/lib/api/apiFootball';
 
 export default function MatchDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -63,10 +64,46 @@ export default function MatchDetailScreen() {
   // Prefer the match handed over by the list screen (covers live-API
   // fixtures); fall back to the bundled samples for direct deep links.
   const selectedMatch = useMatchStore((s) => s.selectedMatch) as unknown as MatchData | null;
-  const match =
+  const baseMatch =
     selectedMatch && String(selectedMatch.id) === String(id)
       ? selectedMatch
       : SAMPLE_MATCHES.find((m) => m.id === id);
+
+  // If this match is currently live, pull REAL in-play stats (possession, shots,
+  // pass accuracy) from API-Football's live feed and fold them into the match so
+  // the widgets, prediction, and AI prompt all use genuine live numbers.
+  const [liveStats, setLiveStats] = useState<LiveMatchStats | null>(null);
+  useEffect(() => {
+    setLiveStats(null);
+    if (!baseMatch || baseMatch.status !== 'live') return;
+    let cancelled = false;
+    const load = () => {
+      fetchLiveMatchStats(baseMatch.homeTeam.name, baseMatch.awayTeam.name)
+        .then((s) => { if (!cancelled) setLiveStats(s); })
+        .catch(() => {});
+    };
+    load();
+    const interval = setInterval(load, 60_000); // refresh live stats each minute
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [baseMatch?.id, baseMatch?.status, baseMatch?.homeTeam.name, baseMatch?.awayTeam.name]);
+
+  const match = useMemo<MatchData | undefined>(() => {
+    if (!baseMatch || !liveStats) return baseMatch;
+    const merge = (team: MatchData['homeTeam'], s: LiveMatchStats['home']) => ({
+      ...team,
+      stats: {
+        ...team.stats,
+        avgPossession: s.possession ?? team.stats.avgPossession,
+        shotsPerGame: s.shots ?? team.stats.shotsPerGame,
+        passAccuracy: s.passAccuracy ?? team.stats.passAccuracy,
+      },
+    });
+    return {
+      ...baseMatch,
+      homeTeam: merge(baseMatch.homeTeam, liveStats.home),
+      awayTeam: merge(baseMatch.awayTeam, liveStats.away),
+    };
+  }, [baseMatch, liveStats]);
 
   // Live-API fixtures come without season history — their stats are zeros.
   const hasStats = !!match && (match.homeTeam.stats.played > 0 || match.awayTeam.stats.played > 0);
@@ -191,15 +228,31 @@ Give a tactical analysis of this matchup.`;
           >
             <Ionicons
               name={tab === 'analysis' ? 'analytics' : tab === 'predict' ? 'trending-up' : tab === 'commentary' ? 'mic' : 'camera'}
-              size={16}
+              size={18}
               color={activeTab === tab ? COLORS.background : COLORS.muted}
             />
-            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+            <Text
+              style={[styles.tabText, activeTab === tab && styles.tabTextActive]}
+              numberOfLines={1}
+            >
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </Text>
           </Pressable>
         ))}
       </View>
+
+      {/* Live real-stats indicator (API-Football) */}
+      {liveStats && (
+        <View style={styles.liveStatsBanner}>
+          <View style={styles.liveStatsDot} />
+          <Text style={styles.liveStatsText}>
+            LIVE{liveStats.elapsed ? ` ${liveStats.elapsed}'` : ''} · {liveStats.homeGoals ?? 0}–{liveStats.awayGoals ?? 0} · real match stats
+          </Text>
+          <Text style={styles.liveStatsPoss}>
+            {liveStats.home.possession ?? '–'}% / {liveStats.away.possession ?? '–'}% poss
+          </Text>
+        </View>
+      )}
 
       {/* Content */}
       <ScrollView
@@ -359,6 +412,7 @@ Give a tactical analysis of this matchup.`;
                   />
                   {agentReady && (
                     <Button
+                      style={{ marginTop: 10 }}
                       title={actionBusy ? '...' : 'Let Agent Tip (policy enforced)'}
                       onPress={async () => {
                         setActionBusy(true);
@@ -487,13 +541,28 @@ const styles = StyleSheet.create({
   vsLabel: { fontSize: 16, fontWeight: '700', color: COLORS.textDim, letterSpacing: 3 },
   matchTime: { fontSize: 12, color: COLORS.textMuted, marginTop: 4 },
   matchTimeSmall: { fontSize: 11, color: COLORS.textDim, marginTop: 2 },
-  tabs: { flexDirection: 'row', gap: 4, padding: 4, marginVertical: 8, backgroundColor: COLORS.surfaceElevated, borderRadius: 999 },
-  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 9, borderRadius: 999, backgroundColor: 'transparent' },
+  tabs: { flexDirection: 'row', gap: 6, padding: 4, marginVertical: 8, backgroundColor: COLORS.surfaceElevated, borderRadius: 18 },
+  tab: { flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 8, paddingHorizontal: 2, borderRadius: 14, backgroundColor: 'transparent' },
   tabActive: { backgroundColor: '#FFFFFF' },
-  tabText: { fontSize: 11, fontWeight: '600', color: COLORS.muted, textTransform: 'uppercase', letterSpacing: 0.3 },
+  tabText: { fontSize: 10.5, fontWeight: '600', color: COLORS.muted, letterSpacing: 0.2 },
   tabTextActive: { color: COLORS.background },
   content: { flex: 1 },
   contentInner: { gap: 14, paddingBottom: 28 },
+  liveStatsBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: COLORS.error + '14',
+    borderWidth: 1,
+    borderColor: COLORS.error + '30',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    marginBottom: 4,
+  },
+  liveStatsDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.error },
+  liveStatsText: { flex: 1, fontSize: 12, fontWeight: '700', color: COLORS.text, letterSpacing: 0.3 },
+  liveStatsPoss: { fontSize: 11, fontWeight: '600', color: COLORS.textMuted },
   loadingContainer: { alignItems: 'center', paddingVertical: 40, gap: 12 },
   loadingText: { fontSize: 16, color: COLORS.text },
   emptyState: { alignItems: 'center', paddingVertical: 40, gap: 12 },

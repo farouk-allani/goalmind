@@ -184,15 +184,16 @@ export class GoalMindAgent {
     if (!this.account) throw new Error('Agent not initialized');
 
     const config = CHAINS[this.state.chain];
+    const recipient = toAddress.trim().toLowerCase();
 
     if (config.usdtAddress) {
       return this.account.simulate.transfer({
         token: config.usdtAddress,
-        recipient: toAddress,
+        recipient,
         amount: toBaseUnits(amount, 6),
       });
     }
-    return this.account.simulate.sendTransaction({ to: toAddress, value: toBaseUnits(amount, 18) });
+    return this.account.simulate.sendTransaction({ to: recipient, value: toBaseUnits(amount, 18) });
   }
 
   // ---- Decision Making ----

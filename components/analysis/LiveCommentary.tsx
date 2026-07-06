@@ -22,7 +22,10 @@ interface LiveCommentaryProps {
 }
 
 export function LiveCommentary({ matchId, homeTeam, awayTeam, events = [] }: LiveCommentaryProps) {
-  const { isReady, loading, analyze, speak } = useAI({ autoLoad: false, models: ['llm', 'tts'] });
+  // Text commentary only needs the LLM (already pre-warmed from Home), so load
+  // it on mount and let the buttons enable as soon as it's ready. `speak`
+  // lazy-loads the TTS model on first tap, so we don't block on it here.
+  const { isReady, loading, analyze, speak } = useAI({ autoLoad: true, models: ['llm'] });
   const [commentary, setCommentary] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);

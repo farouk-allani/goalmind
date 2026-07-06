@@ -13,7 +13,9 @@ import {
   Modal,
   Image,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, FONTS } from '@/types';
@@ -77,6 +79,7 @@ export default function WalletScreen() {
   const [agentSimulateResult, setAgentSimulateResult] = useState<{ decision: string; reason?: string } | null>(null);
   const [agentBusy, setAgentBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Auto-init agent if user wallet is ready (for seamless demo)
   useEffect(() => {
@@ -92,6 +95,32 @@ export default function WalletScreen() {
       refreshAgent();
     }
   }, [chain, agentReady, refreshAgent]);
+
+  // Balances are read once at load; funds that arrive afterwards (e.g. a faucet
+  // deposit) won't show until we re-read. Refresh on screen focus and poll
+  // lightly while the wallet is open so incoming ETH/USDt appear on their own.
+  useFocusEffect(
+    useCallback(() => {
+      if (!isReady) return;
+      refreshBalance();
+      if (agentReady) refreshAgent();
+      const interval = setInterval(() => {
+        refreshBalance();
+        if (agentReady) refreshAgent();
+      }, 15000);
+      return () => clearInterval(interval);
+    }, [isReady, agentReady, refreshBalance, refreshAgent])
+  );
+
+  const onPullRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refreshBalance();
+      if (agentReady) await refreshAgent();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refreshBalance, agentReady, refreshAgent]);
 
   const handleCreateWallet = useCallback(async () => {
     await initialize();
@@ -273,7 +302,17 @@ export default function WalletScreen() {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onPullRefresh}
+            tintColor={COLORS.primary}
+            colors={[COLORS.primary]}
+          />
+        }
+      >
         {/* Wallet Card */}
         <Card style={styles.walletCard}>
           {!isReady && restoring ? (

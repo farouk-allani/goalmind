@@ -85,7 +85,10 @@ export const CHAINS: Record<ChainId, ChainConfig> = {
     rpcUrl: 'https://ethereum-sepolia-rpc.publicnode.com',
     explorerUrl: 'https://sepolia.etherscan.io',
     nativeCurrency: { name: 'Sepolia Ether', symbol: 'ETH', decimals: 18 },
-    usdtAddress: null,
+    // Sepolia has no canonical USDt; this is a widely-used 6-decimal test USDT
+    // deployment ("USD Tether") so faucet-funded USDt shows up and tips move a
+    // real ERC-20 on testnet. Swap this for your own token if you mint one.
+    usdtAddress: '0xc09BeC6f0AedFeb78792D84147648fF30647Dae4',
   },
   ethereum: {
     chainId: 1,

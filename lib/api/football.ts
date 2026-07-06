@@ -128,8 +128,10 @@ export async function fetchLiveMatches(
   competitionId: number = 2000
 ): Promise<ApiMatch[]> {
   try {
+    // v4 valid in-progress statuses are IN_PLAY and PAUSED. (LIVE/HALFTIME are
+    // not accepted and make the whole request 400, so the strip stays empty.)
     const data = await apiFetch<{ matches: ApiMatch[] }>(
-      `/competitions/${competitionId}/matches?status=LIVE,IN_PLAY,PAUSED,HALFTIME`
+      `/competitions/${competitionId}/matches?status=IN_PLAY,PAUSED`
     );
     return data.matches;
   } catch {

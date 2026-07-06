@@ -34,6 +34,12 @@ export interface MatchData {
   venue: string;
   status: 'scheduled' | 'live' | 'finished';
   score?: { home: number; away: number };
+  /**
+   * True when neither side is actually playing at home (World Cup, Euros, and
+   * other tournaments on neutral ground). When set, the prediction engine drops
+   * the home-advantage boost so it doesn't claim a team is "playing at home".
+   */
+  neutralVenue?: boolean;
 }
 
 /**

@@ -6,10 +6,11 @@ import {
   fetchUpcomingMatches,
   fetchLiveMatches,
   fetchStandings,
+  fetchFinishedMatches,
   type ApiMatch,
   type ApiStanding,
 } from '@/lib/api/football';
-import { SAMPLE_MATCHES, SAMPLE_TEAMS, type MatchData, type TeamData } from '@/lib/data/football';
+import { SAMPLE_MATCHES, type MatchData, type TeamData, type TeamStats } from '@/lib/data/football';
 
 interface UseFootballDataOptions {
   competitionId?: number;
@@ -27,14 +28,86 @@ interface UseFootballDataReturn {
   lastUpdated: Date | null;
 }
 
-/** Convert API match to our local MatchData format. */
-function apiMatchToMatchData(apiMatch: ApiMatch): MatchData {
-  const homeStats = {
-    played: 0, wins: 0, draws: 0, losses: 0,
-    goalsFor: 0, goalsAgainst: 0, cleanSheets: 0,
-    avgPossession: 50, passAccuracy: 80, shotsPerGame: 12,
+type TeamStatIndex = Map<number, { stats: TeamStats; recentForm: ('W' | 'D' | 'L')[] }>;
+
+const DEFAULT_STATS: TeamStats = {
+  played: 0, wins: 0, draws: 0, losses: 0,
+  goalsFor: 0, goalsAgainst: 0, cleanSheets: 0,
+  avgPossession: 50, passAccuracy: 80, shotsPerGame: 12,
+};
+
+/**
+ * Build real per-team stats from actual tournament results + standings, keyed
+ * by team id. Without this, every live fixture feeds the prediction engine
+ * all-zeros and produces the same degenerate output for every match.
+ */
+function buildTeamStatIndex(finished: ApiMatch[], standings: ApiStanding[]): TeamStatIndex {
+  interface Agg {
+    played: number; wins: number; draws: number; losses: number;
+    goalsFor: number; goalsAgainst: number; cleanSheets: number;
+    form: ('W' | 'D' | 'L')[]; // chronological, most-recent last
+  }
+  const agg = new Map<number, Agg>();
+  const ensure = (id: number): Agg => {
+    let a = agg.get(id);
+    if (!a) {
+      a = { played: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, cleanSheets: 0, form: [] };
+      agg.set(id, a);
+    }
+    return a;
   };
-  const awayStats = { ...homeStats };
+
+  // Aggregate from finished matches (oldest → newest so form ends recent).
+  const done = finished
+    .filter((m) => m.status === 'FINISHED' && m.score.fullTime.home != null && m.score.fullTime.away != null)
+    .sort((a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime());
+
+  for (const m of done) {
+    const hs = m.score.fullTime.home as number;
+    const as = m.score.fullTime.away as number;
+    const h = ensure(m.homeTeam.id);
+    const a = ensure(m.awayTeam.id);
+    h.played++; a.played++;
+    h.goalsFor += hs; h.goalsAgainst += as;
+    a.goalsFor += as; a.goalsAgainst += hs;
+    if (as === 0) h.cleanSheets++;
+    if (hs === 0) a.cleanSheets++;
+    if (hs > as) { h.wins++; a.losses++; h.form.push('W'); a.form.push('L'); }
+    else if (hs < as) { a.wins++; h.losses++; a.form.push('W'); h.form.push('L'); }
+    else { h.draws++; a.draws++; h.form.push('D'); a.form.push('D'); }
+  }
+
+  // Overlay standings totals + official form where they have more data.
+  for (const s of standings) {
+    const a = ensure(s.team.id);
+    if (s.playedGames >= a.played) {
+      a.played = s.playedGames; a.wins = s.won; a.draws = s.draw; a.losses = s.lost;
+      a.goalsFor = s.goalsFor; a.goalsAgainst = s.goalsAgainst;
+    }
+    if (s.form) {
+      const f = s.form.split('').filter((c) => 'WDL'.includes(c)) as ('W' | 'D' | 'L')[];
+      if (f.length) a.form = f;
+    }
+  }
+
+  const index: TeamStatIndex = new Map();
+  for (const [id, a] of agg) {
+    index.set(id, {
+      stats: {
+        ...DEFAULT_STATS,
+        played: a.played, wins: a.wins, draws: a.draws, losses: a.losses,
+        goalsFor: a.goalsFor, goalsAgainst: a.goalsAgainst, cleanSheets: a.cleanSheets,
+      },
+      recentForm: a.form.slice(-6),
+    });
+  }
+  return index;
+}
+
+/** Convert API match to our local MatchData format, enriched with real stats. */
+function apiMatchToMatchData(apiMatch: ApiMatch, index: TeamStatIndex): MatchData {
+  const homeEntry = index.get(apiMatch.homeTeam.id);
+  const awayEntry = index.get(apiMatch.awayTeam.id);
 
   const homeTeam: TeamData = {
     id: String(apiMatch.homeTeam.id),
@@ -42,8 +115,8 @@ function apiMatchToMatchData(apiMatch: ApiMatch): MatchData {
     shortName: apiMatch.homeTeam.tla || apiMatch.homeTeam.shortName,
     country: '',
     league: apiMatch.competition.name,
-    stats: homeStats,
-    recentForm: [],
+    stats: homeEntry?.stats ?? { ...DEFAULT_STATS },
+    recentForm: homeEntry?.recentForm ?? [],
   };
 
   const awayTeam: TeamData = {
@@ -52,8 +125,8 @@ function apiMatchToMatchData(apiMatch: ApiMatch): MatchData {
     shortName: apiMatch.awayTeam.tla || apiMatch.awayTeam.shortName,
     country: '',
     league: apiMatch.competition.name,
-    stats: awayStats,
-    recentForm: [],
+    stats: awayEntry?.stats ?? { ...DEFAULT_STATS },
+    recentForm: awayEntry?.recentForm ?? [],
   };
 
   return {
@@ -64,6 +137,8 @@ function apiMatchToMatchData(apiMatch: ApiMatch): MatchData {
     awayTeam,
     kickoff: apiMatch.utcDate,
     venue: '',
+    // Tournament fixtures from this feed are on neutral ground.
+    neutralVenue: true,
     status: apiMatch.status === 'FINISHED' ? 'finished'
       : ['LIVE', 'IN_PLAY', 'PAUSED', 'HALFTIME'].includes(apiMatch.status) ? 'live'
       : 'scheduled',
@@ -71,35 +146,6 @@ function apiMatchToMatchData(apiMatch: ApiMatch): MatchData {
       ? { home: apiMatch.score.fullTime.home, away: apiMatch.score.fullTime.away! }
       : undefined,
   };
-}
-
-/** Merge API standings into team stats. */
-function enrichTeamsWithStandings(
-  teams: Record<string, TeamData>,
-  standings: ApiStanding[]
-): Record<string, TeamData> {
-  const enriched = { ...teams };
-  for (const entry of standings) {
-    const key = entry.team.tla?.toLowerCase() || entry.team.shortName?.toLowerCase();
-    if (enriched[key]) {
-      enriched[key] = {
-        ...enriched[key],
-        stats: {
-          ...enriched[key].stats,
-          played: entry.playedGames,
-          wins: entry.won,
-          draws: entry.draw,
-          losses: entry.lost,
-          goalsFor: entry.goalsFor,
-          goalsAgainst: entry.goalsAgainst,
-        },
-        recentForm: entry.form
-          ? entry.form.split('').filter(c => 'WDL'.includes(c)) as ('W' | 'D' | 'L')[]
-          : enriched[key].recentForm,
-      };
-    }
-  }
-  return enriched;
 }
 
 export function useFootballData(options: UseFootballDataOptions = {}): UseFootballDataReturn {
@@ -119,19 +165,26 @@ export function useFootballData(options: UseFootballDataOptions = {}): UseFootba
     setError(null);
 
     try {
-      // Fetch in parallel
-      const [apiMatches, apiLive, apiStandings] = await Promise.all([
+      // Fetch in parallel. Finished matches + standings give us the real
+      // per-team stats that make predictions differ from match to match.
+      const [apiUpcoming, apiLive, apiStandings, apiFinished] = await Promise.all([
         fetchUpcomingMatches(competitionId),
         fetchLiveMatches(competitionId),
         fetchStandings(competitionId),
+        fetchFinishedMatches(competitionId),
       ]);
 
       if (!mountedRef.current) return;
 
-      // If API returned data, use it; otherwise keep sample data
-      if (apiMatches.length > 0) {
-        const converted = apiMatches.map(apiMatchToMatchData);
-        setMatches(converted);
+      const index = buildTeamStatIndex(apiFinished, apiStandings);
+      const enrichedLive = apiLive.map((m) => apiMatchToMatchData(m, index));
+      const enrichedUpcoming = apiUpcoming.map((m) => apiMatchToMatchData(m, index));
+
+      // Live games first, then upcoming. Only replace the bundled samples if the
+      // API actually returned fixtures (offline / no key keeps the rich samples).
+      const combined = [...enrichedLive, ...enrichedUpcoming];
+      if (combined.length > 0) {
+        setMatches(combined);
       }
 
       setLiveMatches(apiLive);

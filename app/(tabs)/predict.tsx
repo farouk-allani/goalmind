@@ -15,9 +15,9 @@ import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, GRADIENTS, FONTS } from '@/types';
-import { SAMPLE_MATCHES } from '@/lib/data/football';
 import { getTeamFlag } from '@/lib/utils/flags';
 import { useAIStore } from '@/stores';
+import { useFootballData } from '@/hooks/useFootballData';
 import { predictMatch, type PredictionResult } from '@/lib/predictions/engine';
 import { Card, Button, Badge, MiniStatsGrid, CircularProgress } from '@/components/ui';
 import { useWallet } from '@/hooks/useWallet';
@@ -25,6 +25,7 @@ import { useAgent, resolveDemoAddress } from '@/hooks/useAgent';
 
 export default function PredictScreen() {
   const { modelsLoaded } = useAIStore();
+  const { matches } = useFootballData();
   const { isReady: walletReady, sendTip, refreshBalance } = useWallet();
   const { isReady: agentReady, evaluateForMatch, executeTip: executeAgentTip } = useAgent();
 
@@ -37,15 +38,15 @@ export default function PredictScreen() {
     setPredicting(true);
 
     try {
-      // Use the real prediction engine
-      const results = SAMPLE_MATCHES.map((match) => predictMatch(match));
+      // Run the real on-device engine over the live fixtures.
+      const results = matches.map((match) => predictMatch(match));
       setPredictions(results);
     } catch (error) {
       console.error('Prediction failed:', error);
     } finally {
       setPredicting(false);
     }
-  }, []);
+  }, [matches]);
 
   // REAL stake using user's WDK wallet (sends a demo tip/stake amount to a fan address)
   const handleRealStake = useCallback(async (pred: PredictionResult, matchName: string) => {
@@ -59,13 +60,18 @@ export default function PredictScreen() {
       // Stake 1.5 USDt equivalent on the favored side (demo)
       const amount = '1.50';
       const favored = pred.homeWin > pred.awayWin ? 'home' : 'away';
-      const teamName = favored === 'home' ? SAMPLE_MATCHES[0].homeTeam.name : SAMPLE_MATCHES[0].awayTeam.name;
+      const teamName = favored === 'home' ? pred.homeTeam : pred.awayTeam;
       const to = resolveDemoAddress(teamName);
 
       const success = await sendTip(to, amount, `Staked on ${matchName} (${favored})`);
       if (success) {
         Alert.alert('Stake Sent (real WDK)', `${amount} USDt staked on ${matchName} via your self-custodial wallet.\n\nAddress: ${to.slice(0, 10)}...`);
         refreshBalance();
+      } else {
+        Alert.alert(
+          'Stake not sent',
+          'The transfer could not be broadcast. A signed transaction still needs a network connection to reach the chain — check that you are online and have enough USDt + gas.'
+        );
       }
     } finally {
       setStakingId(null);
@@ -289,7 +295,7 @@ export default function PredictScreen() {
                 <Pressable
                   style={[styles.stakeBtn, styles.stakeBtnPrimary]}
                   onPress={() => handleRealStake(pred, `${pred.homeTeam} vs ${pred.awayTeam}`)}
-                  disabled={stakingId === pred.matchId || !walletReady}
+                  disabled={stakingId === pred.matchId}
                 >
                   <Ionicons name="wallet" size={15} color={COLORS.background} />
                   <Text style={[styles.stakeBtnText, { color: COLORS.background, textTransform: 'uppercase', letterSpacing: 0.4 }]}>
@@ -300,7 +306,7 @@ export default function PredictScreen() {
                 <Pressable
                   style={[styles.stakeBtn, styles.stakeBtnAgent]}
                   onPress={() => handleAgentStake(pred, pred.matchId)}
-                  disabled={stakingId === pred.matchId || !agentReady}
+                  disabled={stakingId === pred.matchId}
                 >
                   <Ionicons name="flash" size={15} color={COLORS.gold} />
                   <Text style={[styles.stakeBtnText, { textTransform: 'uppercase', letterSpacing: 0.4 }]}>

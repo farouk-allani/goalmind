@@ -131,12 +131,21 @@ export function predictMatch(match: MatchData): PredictionResult {
     description: `${homeTeam.shortName} Elo ${homeElo} vs ${awayTeam.shortName} Elo ${awayElo}`,
   });
 
-  // 2. Home advantage (historically ~8-12% boost)
-  const homeAdvantage = 0.10;
+  // 2. Home advantage (historically ~8-12% boost) — but only when a side is
+  // genuinely at home. World Cups / Euros / etc. are on neutral ground, so
+  // applying (or labelling) a home boost there is simply wrong.
+  const neutralVenue =
+    match.neutralVenue ??
+    /world cup|copa am[eé]rica|euro|nations league|olympic|club world|international friendly/i.test(
+      match.competition ?? ''
+    );
+  const homeAdvantage = neutralVenue ? 0 : 0.10;
   factors.push({
-    name: 'Home Advantage',
+    name: neutralVenue ? 'Venue' : 'Home Advantage',
     impact: homeAdvantage,
-    description: `${homeTeam.shortName} playing at home`,
+    description: neutralVenue
+      ? 'Neutral venue — no home advantage'
+      : `${homeTeam.shortName} playing at home`,
   });
 
   // 3. Form analysis
@@ -179,8 +188,8 @@ export function predictMatch(match: MatchData): PredictionResult {
   let xgHome = ((homeAttack + awayConcede) / 2) * homeForm;
   let xgAway = ((awayAttack + homeConcede) / 2) * awayForm;
 
-  // Apply home advantage to xG
-  xgHome *= 1.1;
+  // Apply home advantage to xG — only for real home matches.
+  if (!neutralVenue) xgHome *= 1.1;
 
   // Clamp xG
   xgHome = Math.max(0.3, Math.min(4.0, xgHome));

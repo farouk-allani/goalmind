@@ -150,7 +150,11 @@ export default function AnalyzeScreen() {
               <Pressable
                 key={match.id}
                 style={styles.liveMatchCard}
-                onPress={() => router.push(`/match/${match.id}`)}
+                onPress={() => {
+                  const full = matches.find((m) => m.id === String(match.id));
+                  if (full) selectMatch(full as any);
+                  router.push(`/match/${match.id}`);
+                }}
               >
                 <Text style={styles.liveTeamName}>{getTeamFlag(match.homeTeam.name)} {match.homeTeam.shortName}</Text>
                 <View style={styles.liveScoreContainer}>
@@ -188,7 +192,7 @@ export default function AnalyzeScreen() {
           />
         }
       >
-        {matches.map((match) => (
+        {matches.filter((m) => m.status !== 'live').map((match) => (
           <Pressable
             key={match.id}
             style={({ pressed }) => [

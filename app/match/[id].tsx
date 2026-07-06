@@ -330,6 +330,7 @@ Give a tactical analysis of this matchup.`;
 
                   {/* Real WDK stake + agent action */}
                   <Button
+                    style={{ marginTop: 16 }}
                     title={actionBusy ? 'Processing...' : 'Stake 1.5 USDt (real WDK)'}
                     onPress={async () => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -342,7 +343,14 @@ Give a tactical analysis of this matchup.`;
                         const favored = (prediction?.homeWin || 0) > (prediction?.awayWin || 0) ? match.homeTeam.name : match.awayTeam.name;
                         const to = resolveDemoAddress(favored);
                         const ok = await sendTip(to, '1.50', `Stake on ${match.homeTeam.shortName} vs ${match.awayTeam.shortName}`);
-                        if (ok) Alert.alert('Staked!', 'Real transfer sent from your WDK wallet.');
+                        if (ok) {
+                          Alert.alert('Staked!', 'Real transfer sent from your WDK wallet.');
+                        } else {
+                          Alert.alert(
+                            'Stake not sent',
+                            'The transfer could not be broadcast. A signed transaction still needs a network connection — check that you are online and have enough USDt + gas.'
+                          );
+                        }
                       } finally { setActionBusy(false); }
                     }}
                     icon="cash"

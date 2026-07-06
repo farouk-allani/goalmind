@@ -2,7 +2,7 @@
 // Real-time AI commentary generation with text-to-speech.
 
 import { useState, useCallback, useEffect } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '@/types';
 import { Card, Button, Pill } from '@/components/ui';
@@ -28,7 +28,7 @@ export function LiveCommentary({ matchId, homeTeam, awayTeam, events = [] }: Liv
   const { isReady, loading, analyze, speak } = useAI({ autoLoad: true, models: ['llm'] });
   const [commentary, setCommentary] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speakingIndex, setSpeakingIndex] = useState<number | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState('en');
 
   const languages = [
@@ -65,19 +65,18 @@ Generate commentary for this moment.`;
     }
   }, [isReady, isGenerating, homeTeam, awayTeam, selectedLanguage]);
 
-  const speakCommentary = useCallback(async (text: string) => {
-    if (!isReady || isSpeaking) return;
+  const speakCommentary = useCallback(async (text: string, index: number) => {
+    if (speakingIndex !== null) return;
 
-    setIsSpeaking(true);
+    setSpeakingIndex(index);
     try {
       await speak(text);
-      // In production, this would play the audio buffer
     } catch (error) {
       console.error('Speech synthesis failed:', error);
     } finally {
-      setIsSpeaking(false);
+      setSpeakingIndex(null);
     }
-  }, [isReady, speak]);
+  }, [speak, speakingIndex]);
 
   // Auto-generate commentary for new events
   useEffect(() => {
@@ -125,14 +124,14 @@ Generate commentary for this moment.`;
               <Text style={styles.commentaryText}>{line}</Text>
               <Pressable
                 style={styles.speakButton}
-                onPress={() => speakCommentary(line)}
-                disabled={isSpeaking}
+                onPress={() => speakCommentary(line, index)}
+                disabled={speakingIndex !== null}
               >
-                <Ionicons
-                  name={isSpeaking ? 'volume-high' : 'volume-medium-outline'}
-                  size={16}
-                  color={COLORS.primary}
-                />
+                {speakingIndex === index ? (
+                  <ActivityIndicator size="small" color={COLORS.primary} />
+                ) : (
+                  <Ionicons name="volume-medium-outline" size={16} color={COLORS.primary} />
+                )}
               </Pressable>
             </View>
           ))

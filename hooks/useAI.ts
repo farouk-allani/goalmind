@@ -37,12 +37,25 @@ interface UseAIReturn {
 export function useAI(options: UseAIOptions = {}): UseAIReturn {
   const { autoLoad = true, models = ['llm'] } = options;
 
-  const [isReady, setIsReady] = useState(false);
+  // If the requested models are already cached (e.g. the LLM was pre-warmed on
+  // the Home screen), report ready immediately so gated buttons don't sit
+  // disabled waiting on a redundant load round-trip.
+  const [isReady, setIsReady] = useState(() => models.every((m) => isModelLoaded(m)));
   const [loading, setLoading] = useState(false);
   const [loadingModel, setLoadingModel] = useState<ModelType | null>(null);
   const [downloadPct, setDownloadPct] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const mountedRef = useRef(true);
+  // Handle to the currently-playing TTS clip so we can stop it if a new line is
+  // spoken or the screen unmounts (prevents audio playing "by itself" later).
+  const playerRef = useRef<any>(null);
+
+  const stopSpeaking = useCallback(() => {
+    if (playerRef.current) {
+      try { playerRef.current.remove(); } catch { /* already released */ }
+      playerRef.current = null;
+    }
+  }, []);
 
   const onProgress = useCallback((p: ModelProgress) => {
     if (mountedRef.current) setDownloadPct(Math.round(p.percentage));
@@ -94,8 +107,14 @@ export function useAI(options: UseAIOptions = {}): UseAIReturn {
       await ensureModelLoaded('tts', onProgress);
       if (mountedRef.current) setDownloadPct(null);
     }
+    // Model download can take a while on first use; bail if the user left.
+    if (!mountedRef.current) return;
 
     const { wavBase64 } = await synthesizeSpeech(text);
+
+    // On-device synthesis takes a few seconds. If the user has since navigated
+    // away, do NOT start playback — otherwise it plays "by itself" later.
+    if (!mountedRef.current) return;
 
     if (Platform.OS === 'web') {
       // Web preview: the mock returns silence; use the browser Audio element.
@@ -108,14 +127,21 @@ export function useAI(options: UseAIOptions = {}): UseAIReturn {
     const FileSystem = await import('expo-file-system/legacy');
     const { createAudioPlayer } = await import('expo-audio');
 
+    if (!mountedRef.current) return;
+
     const uri = `${FileSystem.cacheDirectory}goalmind-tts-${Date.now()}.wav`;
     await FileSystem.writeAsStringAsync(uri, wavBase64, {
       encoding: FileSystem.EncodingType.Base64,
     });
 
+    if (!mountedRef.current) return;
+
+    // Stop any previous clip still playing, then play this one.
+    stopSpeaking();
     const player = createAudioPlayer({ uri });
+    playerRef.current = player;
     player.play();
-  }, [onProgress]);
+  }, [onProgress, stopSpeaking]);
 
   const cleanup = useCallback(async () => {
     await unloadAllModels();
@@ -133,8 +159,9 @@ export function useAI(options: UseAIOptions = {}): UseAIReturn {
   useEffect(() => {
     return () => {
       mountedRef.current = false;
+      stopSpeaking();
     };
-  }, []);
+  }, [stopSpeaking]);
 
   return {
     isReady,
